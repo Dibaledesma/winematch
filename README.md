@@ -28,7 +28,7 @@ técnico habría encontrado. La v2 corrige cada punto, con test que lo prueba:
 | El restaurante estaba "pegado" en dos páginas (`seleccion-mas-bosson.php`, `seleccion-quatre.php`) | Entidad `Restaurante`, carta por slug, alta de platos desde el panel |
 | Ids numéricos secuenciales en las URLs | Slugs públicos: `/restaurante/mas-bosson/arroz-de-bogavante` |
 | `ORDER BY RAND()`, esquema con tablas creadas dos veces | Esquema limpio SQLite/MySQL; aleatoriedad en PHP |
-| Sin tests, sin README, sin git | 71 tests (unitarios + HTTP reales) y CI en GitHub Actions |
+| Sin tests, sin README, sin git | 77 tests (unitarios + HTTP reales) y CI en GitHub Actions |
 | 40 MB de imágenes sin optimizar | Un CSS, cero imágenes |
 
 ## Requisitos de la memoria → dónde se cumplen
@@ -38,6 +38,7 @@ técnico habría encontrado. La v2 corrige cada punto, con test que lo prueba:
 | RF1 Registro con nombre, correo y contraseña | `/registro` · [`Auth::registrar`](src/Auth.php) |
 | RF2 Login y cierre de sesión seguros | `/login`, `/salir` · sesión con flags y rotación de id |
 | RF3 Elegir restaurante → carta → plato (+ preferencia) | `/restaurante/{slug}` y `/restaurante/{slug}/{plato}?tipo=N` |
+| RF3 (caso de uso 3) Elegir un vino y ver si marida con el plato | `/restaurante/{slug}/{plato}?vino=N` · [`Maridaje::comprobar`](src/Maridaje.php) |
 | RF4 Recomendación con vino, bodega y botella | [`Maridaje::recomendar`](src/Maridaje.php) |
 | RF5 Resultado claro y atractivo | [`templates/resultado.php`](templates/resultado.php) |
 | RF6 Interfaz intuitiva y responsive | [`public/static/css/winematch.css`](public/static/css/winematch.css) |
@@ -61,14 +62,21 @@ explica al comensal qué está viendo:
 Cada consulta queda registrada para el usuario (`Consulta`), como pedía el ER de
 la memoria.
 
+Y está el modo de la v1, **"¿Marida?"**: si el comensal ya tiene un vino en mente,
+lo elige y el sistema le dice si hace match en tres niveles — *match de la casa*
+(regla exacta), *compatible por perfil aromático* (ese vino ya es el maridaje de otro
+plato con la misma especie) o *sin regla todavía*, siempre con la sugerencia de la
+casa al lado. [`Maridaje::comprobar()`](src/Maridaje.php).
+
 ## Decisiones de seguridad
 
 - **Autenticación**: hash bcrypt, rotación del id de sesión al entrar, mensaje de
   error idéntico para "usuario inexistente" y "contraseña incorrecta", trabajo
   constante en el login fallido (sin oráculo de existencia).
 - **Sesión**: cookie `HttpOnly` + `SameSite=Lax`; `Secure` con `APP_ENV=production`.
-- **CSRF**: todo POST sin `Origin` exacto de este sitio recibe 403. Sin tokens
-  que filtrar.
+- **CSRF**: todo POST sin una señal de mismo origen recibe 403. Se acepta
+  `Sec-Fetch-Site: same-origin` (Fetch Metadata, no falsificable por JavaScript),
+  `Origin` exacto o `Referer` del mismo host. Sin tokens que filtrar.
 - **XSS**: escape de toda la salida y CSP `default-src 'self'` sin una sola línea
   de JavaScript o CSS inline.
 - **Inyección SQL**: imposible por construcción — no hay ninguna concatenación de
@@ -111,14 +119,14 @@ Para desplegar, el docroot es `public/`.
 composer test
 ```
 
-71 tests, dos familias:
+77 tests, dos familias:
 
 - **Unitarios** sobre SQLite en memoria: modelo, autenticación, motor de maridaje
   (exacto y cada escalón de degradación), opiniones y administración.
 - **HTTP de extremo a extremo**: se levanta el servidor integrado de PHP contra
   una base de datos temporal y se disparan peticiones reales con curl — POST sin
   origen, origen ajeno, inyección SQL, XSS en nombre, plato y comentario, 404
-  idéntico, flags de cookie, rol admin, alta de carta.
+  idéntico, flags de cookie, rol admin, alta de carta, veredicto de "¿Marida?".
 
 ## Estructura
 
