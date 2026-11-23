@@ -128,6 +128,23 @@ h2 { font-size: 1.35rem; margin: 0 0 0.5rem; }
 .comentarios { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7rem; }
 .comentarios li { border-top: 1px solid var(--borde); padding-top: 0.6rem; font-size: 0.95rem; }
 .comentarios strong { color: var(--tinta); }
+
+/* Opiniones y admin */
+fieldset.valoracion { border: none; padding: 0; margin: 1rem 0 0; display: flex; flex-wrap: wrap; gap: 0.2rem; }
+fieldset.valoracion legend { font-size: 0.9rem; color: var(--tinta-suave); margin-bottom: 0.3rem; }
+fieldset.valoracion input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+fieldset.valoracion label { font-size: 1.4rem; cursor: pointer; color: var(--borde); }
+fieldset.valoracion input:checked + label { color: var(--dorado); }
+fieldset.valoracion input:focus-visible + label { outline: 2px solid var(--dorado); }
+textarea, select { padding: 0.6rem 0.8rem; border: 1px solid var(--borde); border-radius: 6px; font: inherit; background: #fff; width: 100%; }
+textarea:focus, select:focus { outline: 2px solid var(--dorado); border-color: var(--dorado); }
+.dos-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+.dos-columnas h3 { margin: 0.6rem 0 0; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+.tabla th, .tabla td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--borde); }
+.tabla th { color: var(--tinta-suave); font-weight: normal; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.tabla tr:hover td { background: rgba(201, 162, 39, 0.08); }
+.tarjeta + .tarjeta { margin-top: 1.2rem; }
 @media (max-width: 600px) {
     .plato { grid-template-columns: 1fr; }
     .plato .etiqueta { grid-column: 1; grid-row: auto; margin-top: 0.3rem; }

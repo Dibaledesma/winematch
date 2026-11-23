@@ -4,6 +4,7 @@
  * @var array<string, mixed> $rec
  * @var list<array{id: int, nombre: string}> $tipos
  * @var array<string, mixed> $opiniones
+ * @var array{puntuacion: int|null, comentario: string} $mia
  * @var int|null $tipoElegido
  */
 use WineMatch\Html;
@@ -47,4 +48,21 @@ $base = '/restaurante/' . Html::e($plato['restaurante_slug']) . '/' . Html::e($p
             <?php endforeach; ?>
         </ul>
     <?php endif; ?>
+</section>
+
+<section class="tarjeta">
+    <h3>Tu opinión</h3>
+    <form method="post" action="<?= $base ?>/opinar<?= $tipoElegido !== null ? '?tipo=' . $tipoElegido : '' ?>" class="formulario">
+        <input type="hidden" name="vino_id" value="<?= (int) $rec['vino']['id'] ?>">
+        <fieldset class="valoracion">
+            <legend>¿Qué te ha parecido <?= Html::e($rec['vino']['nombre']) ?>?</legend>
+            <?php for ($i = 5; $i >= 1; $i--): ?>
+                <input type="radio" id="p<?= $i ?>" name="puntuacion" value="<?= $i ?>" <?= $mia['puntuacion'] === $i ? 'checked' : '' ?>>
+                <label for="p<?= $i ?>" title="<?= $i ?> de 5"><?= $i ?>★</label>
+            <?php endfor; ?>
+        </fieldset>
+        <label for="comentario">Comentario (opcional)</label>
+        <textarea id="comentario" name="comentario" rows="3" maxlength="500"><?= Html::e($mia['comentario']) ?></textarea>
+        <button type="submit" class="boton boton-primario"><?= $mia['puntuacion'] !== null || $mia['comentario'] !== '' ? 'Actualizar' : 'Enviar' ?></button>
+    </form>
 </section>

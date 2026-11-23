@@ -197,6 +197,110 @@ final class HttpTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $carta['body']);
     }
 
+    private function entrarComoAdmin(): Http
+    {
+        $h = new Http();
+        $r = $h->peticion('POST', '/login', ['email' => Servidor::EMAIL_ADMIN, 'password' => Servidor::$adminPass], ['Origin' => $h->origen()]);
+        if ($r['status'] !== 303) {
+            self::fail('Login admin falló: ' . $r['status']);
+        }
+        return $h;
+    }
+
+    public function testOpinarGuardaYSeMuestraEnElResultado(): void
+    {
+        $this->h->registrarYEntrar('opina@ejemplo.test');
+        $blanco = (int) Servidor::pdo()->query("SELECT id FROM TipoVino WHERE nombre = 'Blanco'")->fetchColumn();
+        $url = '/restaurante/mas-bosson/arroz-de-bogavante?tipo=' . $blanco;
+        $pagina = $this->h->peticion('GET', $url);
+        preg_match('/name="vino_id" value="(\d+)"/', $pagina['body'], $m);
+        $vinoId = (int) $m[1];
+
+        $r = $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar?tipo=' . $blanco, ['vino_id' => $vinoId, 'puntuacion' => '4', 'comentario' => 'Muy buen maridaje'], ['Origin' => $this->h->origen()]);
+        $this->assertSame(303, $r['status']);
+        $this->assertSame($url, $this->h->cabecera('location'));
+
+        $despues = $this->h->peticion('GET', $url);
+        $this->assertStringContainsString('Muy buen maridaje', $despues['body']);
+        $this->assertStringContainsString('(2 valoraciones)', $despues['body']);
+    }
+
+    public function testOpinarSinOrigenSeRechaza(): void
+    {
+        $this->h->registrarYEntrar('opina2@ejemplo.test');
+        $r = $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '5']);
+        $this->assertSame(403, $r['status']);
+    }
+
+    public function testOpinionInvalidaVuelveConAvisoYNoGuarda(): void
+    {
+        $this->h->registrarYEntrar('opina3@ejemplo.test');
+        $antes = (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Valoracion')->fetchColumn();
+        $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '9', 'comentario' => ''], ['Origin' => $this->h->origen()]);
+        $pagina = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante');
+        $this->assertStringContainsString('entre 1 y 5', $pagina['body']);
+        $this->assertSame($antes, (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Valoracion')->fetchColumn());
+    }
+
+    public function testXssEnComentarioSeEscapa(): void
+    {
+        $this->h->registrarYEntrar('opina4@ejemplo.test');
+        $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '', 'comentario' => '<script>alert(1)</script>'], ['Origin' => $this->h->origen()]);
+        $pagina = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante');
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $pagina['body']);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $pagina['body']);
+    }
+
+    public function testElPanelAdminRequiereRolAdmin(): void
+    {
+        $this->h->registrarYEntrar('normal@ejemplo.test');
+        $r = $this->h->peticion('GET', '/admin');
+        $this->assertSame(403, $r['status']);
+        $this->assertStringContainsString('Acceso denegado', $r['body']);
+
+        $admin = $this->entrarComoAdmin();
+        $panel = $admin->peticion('GET', '/admin');
+        $this->assertSame(200, $panel['status']);
+        $this->assertStringContainsString('Usuarios registrados', $panel['body']);
+        $this->assertStringContainsString('normal@ejemplo.test', $panel['body']);
+        $this->assertStringContainsString('Últimos comentarios', $panel['body']);
+    }
+
+    public function testAdminCargaUnPlatoYUnaReglaDeMaridaje(): void
+    {
+        $admin = $this->entrarComoAdmin();
+        $pdo = Servidor::pdo();
+        $restaurante = (int) $pdo->query("SELECT id FROM Restaurante WHERE slug = 'quatre-vents'")->fetchColumn();
+        $especie = (int) $pdo->query("SELECT id FROM Especie WHERE nombre = 'Flores blancas'")->fetchColumn();
+        $vino = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Anna de Codorníu Brut'")->fetchColumn();
+
+        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => $restaurante, 'nombre' => 'Ostras de la lonja', 'descripcion' => 'Media docena.', 'especie_id' => $especie], ['Origin' => $admin->origen()]);
+        $this->assertSame(303, $r['status']);
+        $this->assertStringContainsString('Ostras de la lonja', $admin->peticion('GET', '/restaurante/quatre-vents')['body']);
+
+        $plato = (int) $pdo->query("SELECT id FROM Comida WHERE slug = 'ostras-de-la-lonja'")->fetchColumn();
+        $r = $admin->peticion('POST', '/admin/recomendacion', ['vino_id' => $vino, 'comida_id' => $plato, 'mensaje' => 'La burbuja fresca y la sal de la ostra se necesitan.'], ['Origin' => $admin->origen()]);
+        $this->assertSame(303, $r['status']);
+
+        $resultado = $admin->peticion('GET', '/restaurante/quatre-vents/ostras-de-la-lonja');
+        $this->assertStringContainsString('Maridaje de la casa', $resultado['body']);
+        $this->assertStringContainsString('Anna de Codorníu Brut', $resultado['body']);
+    }
+
+    public function testAdminSinOrigenOConDatosInvalidosNoGuarda(): void
+    {
+        $admin = $this->entrarComoAdmin();
+        $antes = (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Comida')->fetchColumn();
+
+        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => 1, 'nombre' => 'X', 'especie_id' => 1]);
+        $this->assertSame(403, $r['status']);
+
+        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => 999, 'nombre' => 'Plato', 'especie_id' => 1], ['Origin' => $admin->origen()]);
+        $this->assertSame(303, $r['status']);
+        $this->assertStringContainsString('Restaurante no válido', $admin->peticion('GET', '/admin')['body']);
+        $this->assertSame($antes, (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Comida')->fetchColumn());
+    }
+
     public function testSalirCierraLaSesion(): void
     {
         $this->h->registrarYEntrar('sale@ejemplo.test');

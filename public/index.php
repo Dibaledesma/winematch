@@ -9,11 +9,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use WineMatch\Admin;
 use WineMatch\Auth;
 use WineMatch\Config;
 use WineMatch\Db;
 use WineMatch\Html;
 use WineMatch\Maridaje;
+use WineMatch\Opiniones;
 
 $config = new Config();
 
@@ -175,9 +177,63 @@ switch ("{$metodo} {$uri}") {
             echo Html::render('resultado', [
                 'plato' => $plato, 'rec' => $rec, 'tipos' => $tipos, 'tipoElegido' => $tipoElegido,
                 'opiniones' => Maridaje::opiniones($pdo, $rec['vino']['id']),
+                'mia' => Opiniones::mia($pdo, (int) $usuario['id'], $rec['vino']['id']),
                 'titulo' => $plato['nombre'] . ' · ' . $rec['vino']['nombre'],
             ] + $vars);
             break;
+        }
+        // POST /restaurante/{slug}/{plato}/opinar : valorar o comentar el vino recomendado.
+        if ($metodo === 'POST' && preg_match('#^/restaurante/([a-z0-9-]+)/([a-z0-9-]+)/opinar$#', $uri, $m) === 1) {
+            $usuario = Auth::requiereLogin($pdo);
+            $plato = Maridaje::platoPorSlug($pdo, $m[1], $m[2]);
+            if ($plato === null) {
+                pagina404();
+            }
+            $volver = "/restaurante/{$m[1]}/{$m[2]}" . (isset($_GET['tipo']) && ctype_digit((string) $_GET['tipo']) ? '?tipo=' . (int) $_GET['tipo'] : '');
+            $puntuacion = isset($_POST['puntuacion']) && $_POST['puntuacion'] !== '' && ctype_digit((string) $_POST['puntuacion']) ? (int) $_POST['puntuacion'] : null;
+            try {
+                Opiniones::guardar($pdo, (int) $usuario['id'], (int) ($_POST['vino_id'] ?? 0), $puntuacion, isset($_POST['comentario']) ? (string) $_POST['comentario'] : null);
+                Html::flash('ok', 'Gracias por tu opinión.');
+            } catch (\InvalidArgumentException $e) {
+                Html::flash('error', $e->getMessage());
+            }
+            Html::redirigir($volver);
+        }
+        // /admin : panel de administracion (solo rol admin).
+        if ($metodo === 'GET' && $uri === '/admin') {
+            $usuario = Auth::requiereAdmin($pdo);
+            Html::cabecerasHtml();
+            echo Html::render('admin', [
+                'titulo' => 'Administración',
+                'usuarios' => Admin::usuarios($pdo),
+                'comentarios' => Admin::comentarios($pdo),
+                'valoraciones' => Admin::valoraciones($pdo),
+                'platos' => Admin::platos($pdo),
+                'vinos' => Admin::vinos($pdo),
+                'especies' => Admin::especies($pdo),
+                'restaurantes' => Maridaje::restaurantes($pdo),
+            ] + $vars);
+            break;
+        }
+        if ($metodo === 'POST' && $uri === '/admin/plato') {
+            Auth::requiereAdmin($pdo);
+            try {
+                Admin::crearPlato($pdo, (int) ($_POST['restaurante_id'] ?? 0), (string) ($_POST['nombre'] ?? ''), (string) ($_POST['descripcion'] ?? ''), (int) ($_POST['especie_id'] ?? 0));
+                Html::flash('ok', 'Plato añadido a la carta.');
+            } catch (\InvalidArgumentException $e) {
+                Html::flash('error', $e->getMessage());
+            }
+            Html::redirigir('/admin');
+        }
+        if ($metodo === 'POST' && $uri === '/admin/recomendacion') {
+            Auth::requiereAdmin($pdo);
+            try {
+                Admin::crearRecomendacion($pdo, (int) ($_POST['vino_id'] ?? 0), (int) ($_POST['comida_id'] ?? 0), (string) ($_POST['mensaje'] ?? ''));
+                Html::flash('ok', 'Regla de maridaje creada.');
+            } catch (\InvalidArgumentException $e) {
+                Html::flash('error', $e->getMessage());
+            }
+            Html::redirigir('/admin');
         }
         pagina404();
 }
