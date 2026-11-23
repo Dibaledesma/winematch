@@ -28,6 +28,12 @@ final class Maridaje
         return $r === false ? null : $r;
     }
 
+    /** @return list<array{id: int, nombre: string, bodega: string}> */
+    public static function vinos(PDO $pdo): array
+    {
+        return $pdo->query('SELECT id, nombre, bodega FROM Vino ORDER BY nombre')->fetchAll() ?: [];
+    }
+
     /** @return list<array<string, mixed>> platos de la carta con su especie aromatica */
     public static function carta(PDO $pdo, int $restauranteId): array
     {
@@ -108,6 +114,65 @@ final class Maridaje
     public static function registrarConsulta(PDO $pdo, int $usuarioId, int $recomendacionId): void
     {
         $pdo->prepare('INSERT INTO Consulta (usuario_id, recomendacion_id) VALUES (?, ?)')->execute([$usuarioId, $recomendacionId]);
+    }
+
+    /**
+     * El comensal elige el vino y el sistema dice si hace match con el plato.
+     * @return array{vino: array<string, mixed>, veredicto: string, titulo: string, mensaje: string, sugerencia: array<string, mixed>}
+     */
+    public static function comprobar(PDO $pdo, array $plato, int $vinoId): array
+    {
+        $stmt = $pdo->prepare('SELECT id, nombre, bodega, botella, variedad, descripcion, tipo_id FROM Vino WHERE id = ?');
+        $stmt->execute([$vinoId]);
+        $vino = $stmt->fetch();
+        if ($vino === false) {
+            throw new \InvalidArgumentException('Ese vino no existe.');
+        }
+        $sugerencia = self::recomendar($pdo, $plato, null);
+
+        // 1. Regla de la casa para este vino con este plato.
+        $stmt = $pdo->prepare('SELECT mensaje FROM Recomendacion WHERE vino_id = ? AND comida_id = ?');
+        $stmt->execute([$vinoId, $plato['id']]);
+        $mensaje = $stmt->fetchColumn();
+        if ($mensaje !== false) {
+            return self::veredicto($vino, 'exacto', 'Match de la casa', (string) $mensaje, $sugerencia);
+        }
+
+        // 2. Ese vino ya marida otro plato con la misma especie aromatica.
+        $stmt = $pdo->prepare(
+            'SELECT r.mensaje, c.nombre AS otro_plato
+             FROM Recomendacion r JOIN Comida c ON c.id = r.comida_id
+             WHERE r.vino_id = ? AND r.especie_id = ? AND r.comida_id <> ?
+             ORDER BY r.id LIMIT 1'
+        );
+        $stmt->execute([$vinoId, $plato['especie_id'], $plato['id']]);
+        $parecido = $stmt->fetch();
+        if ($parecido !== false) {
+            $texto = sprintf(
+                'No hay regla propia para %s, pero este vino ya es el maridaje de %s, que comparte su perfil de %s. %s',
+                $plato['nombre'],
+                $parecido['otro_plato'],
+                $plato['especie'],
+                $parecido['mensaje']
+            );
+            return self::veredicto($vino, 'parecido', 'Compatible por perfil', $texto, $sugerencia);
+        }
+
+        // 3. Sin regla: se dice con honestidad y se ofrece la sugerencia de la casa.
+        $texto = sprintf('No tenemos %s definido para %s. Si te fías de la casa, esto es lo que sí tenemos:', $vino['nombre'], $plato['nombre']);
+        return self::veredicto($vino, 'sin_regla', 'Sin regla todavía', $texto, $sugerencia);
+    }
+
+    /** @param array<string, mixed> $vino @param array<string, mixed> $sugerencia */
+    private static function veredicto(array $vino, string $veredicto, string $titulo, string $mensaje, array $sugerencia): array
+    {
+        return [
+            'vino' => ['id' => (int) $vino['id'], 'nombre' => $vino['nombre'], 'bodega' => $vino['bodega'], 'variedad' => $vino['variedad']],
+            'veredicto' => $veredicto,
+            'titulo' => $titulo,
+            'mensaje' => $mensaje,
+            'sugerencia' => $sugerencia,
+        ];
     }
 
     /** Opiniones del vino: media, total y comentarios. @return array{media: float|null, total: int, comentarios: list<array<string, mixed>>} */

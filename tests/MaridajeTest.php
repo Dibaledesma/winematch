@@ -151,4 +151,41 @@ final class MaridajeTest extends TestCase
         $this->assertSame(3.0, $op['media']);
         $this->assertSame([], $op['comentarios']);
     }
+
+    private function vino(string $nombre): int
+    {
+        $stmt = $this->pdo->prepare('SELECT id FROM Vino WHERE nombre = ?');
+        $stmt->execute([$nombre]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function testMaridaTuMatchDeLaCasa(): void
+    {
+        $r = Maridaje::comprobar($this->pdo, $this->plato('arroz-de-bogavante'), $this->vino('Martín Códax'));
+        $this->assertSame('exacto', $r['veredicto']);
+        $this->assertSame('Match de la casa', $r['titulo']);
+        $this->assertStringContainsString('Albariño', $r['mensaje']);
+    }
+
+    public function testMaridaTuCompatiblePorPerfilAromatico(): void
+    {
+        $r = Maridaje::comprobar($this->pdo, $this->plato('arroz-de-bogavante'), $this->vino('Marqués de Cáceres Crianza'));
+        $this->assertSame('parecido', $r['veredicto']);
+        $this->assertStringContainsString('Bacalao con pisto', $r['mensaje']);
+        $this->assertStringContainsString('perfil de Fruta madura', $r['mensaje']);
+    }
+
+    public function testMaridaTuSinReglaEsHonestoYSugiere(): void
+    {
+        $r = Maridaje::comprobar($this->pdo, $this->plato('canelones-de-ternera'), $this->vino('Recaredo Brut Nature'));
+        $this->assertSame('sin_regla', $r['veredicto']);
+        $this->assertStringContainsString('No tenemos Recaredo Brut Nature definido para Canelones de ternera', $r['mensaje']);
+        $this->assertSame('Cune Crianza', $r['sugerencia']['vino']['nombre']);
+    }
+
+    public function testMaridaTuConVinoInexistenteLanza(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Maridaje::comprobar($this->pdo, $this->plato('arroz-de-bogavante'), 9999);
+    }
 }

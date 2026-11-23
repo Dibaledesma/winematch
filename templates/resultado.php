@@ -6,6 +6,8 @@
  * @var array<string, mixed> $opiniones
  * @var array{puntuacion: int|null, comentario: string} $mia
  * @var int|null $tipoElegido
+ * @var list<array{id: int, nombre: string, bodega: string}> $vinos
+ * @var array<string, mixed>|null $eleccion
  */
 use WineMatch\Html;
 
@@ -34,6 +36,30 @@ $base = '/restaurante/' . Html::e($plato['restaurante_slug']) . '/' . Html::e($p
     <p class="variedad"><?= Html::e($rec['vino']['variedad']) ?></p>
     <p class="mensaje"><?= Html::e($rec['mensaje']) ?></p>
     <p class="nota"><?= Html::e($rec['vino']['descripcion']) ?></p>
+</section>
+
+<section class="tarjeta">
+    <h3>¿Ya tienes un vino en mente? ¿Marida?</h3>
+    <form method="get" action="<?= $base ?>" class="formulario formulario-inline">
+        <label for="vino">Elige el vino</label>
+        <select id="vino" name="vino" required>
+            <option value="">— elige —</option>
+            <?php foreach ($vinos as $v): ?>
+                <option value="<?= (int) $v['id'] ?>" <?= $eleccion !== null && $eleccion['vino']['id'] === (int) $v['id'] ? 'selected' : '' ?>><?= Html::e($v['nombre']) ?> (<?= Html::e($v['bodega']) ?>)</option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit" class="boton boton-secundario">¿Marida?</button>
+    </form>
+    <?php if ($eleccion !== null): ?>
+        <div class="veredicto veredicto-<?= Html::e($eleccion['veredicto']) ?>" role="status">
+            <p class="veredicto-titulo"><?= Html::e($eleccion['titulo']) ?></p>
+            <p><strong><?= Html::e($eleccion['vino']['nombre']) ?></strong> (<?= Html::e($eleccion['vino']['bodega']) ?>) con <?= Html::e($plato['nombre']) ?>:</p>
+            <p><?= Html::e($eleccion['mensaje']) ?></p>
+            <?php if ($eleccion['veredicto'] !== 'exacto'): ?>
+                <p class="nota">La sugerencia de la casa para este plato es <strong><?= Html::e($eleccion['sugerencia']['vino']['nombre']) ?></strong>.</p>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </section>
 
 <section class="tarjeta">

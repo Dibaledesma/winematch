@@ -229,6 +229,29 @@ final class HttpTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $carta['body']);
     }
 
+    public function testMaridaTuDaUnVeredictoSegunElVinoElegido(): void
+    {
+        $this->h->registrarYEntrar('marida@ejemplo.test');
+        $pdo = Servidor::pdo();
+        $codax = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Martín Códax'")->fetchColumn();
+        $recaredo = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Recaredo Brut Nature'")->fetchColumn();
+        $base = '/restaurante/mas-bosson/arroz-de-bogavante';
+
+        $pagina = $this->h->peticion('GET', $base);
+        $this->assertStringContainsString('¿Marida?', $pagina['body']);
+        $this->assertStringNotContainsString('veredicto-', $pagina['body']);
+
+        $match = $this->h->peticion('GET', $base . '?vino=' . $codax);
+        $this->assertStringContainsString('Match de la casa', $match['body']);
+
+        $sin = $this->h->peticion('GET', $base . '?vino=' . $recaredo);
+        $this->assertStringContainsString('Sin regla todavía', $sin['body']);
+
+        $invalido = $this->h->peticion('GET', $base . '?vino=999');
+        $this->assertSame(200, $invalido['status']);
+        $this->assertStringNotContainsString('veredicto-', $invalido['body']);
+    }
+
     private function entrarComoAdmin(): Http
     {
         $h = new Http();

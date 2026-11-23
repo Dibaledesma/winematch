@@ -145,6 +145,19 @@ textarea:focus, select:focus { outline: 2px solid var(--dorado); border-color: v
 .tabla th { color: var(--tinta-suave); font-weight: normal; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .tabla tr:hover td { background: rgba(201, 162, 39, 0.08); }
 .tarjeta + .tarjeta { margin-top: 1.2rem; }
+
+/* ¿Marida? */
+.formulario-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 0.8rem; }
+.formulario-inline label { margin: 0; white-space: nowrap; }
+.formulario-inline select { width: auto; min-width: 260px; }
+.veredicto { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: 8px; border-left: 5px solid var(--borde); background: #fff; }
+.veredicto-titulo { font-weight: bold; font-size: 1.15rem; margin: 0 0 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.85rem; }
+.veredicto-exacto { border-left-color: var(--ok); background: #f1f8f2; }
+.veredicto-exacto .veredicto-titulo { color: var(--ok); }
+.veredicto-parecido { border-left-color: var(--dorado); background: #fbf6e4; }
+.veredicto-parecido .veredicto-titulo { color: #8a6d0f; }
+.veredicto-sin_regla { border-left-color: var(--rubí); background: #fdf1f2; }
+.veredicto-sin_regla .veredicto-titulo { color: var(--error); }
 @media (max-width: 600px) {
     .plato { grid-template-columns: 1fr; }
     .plato .etiqueta { grid-column: 1; grid-row: auto; margin-top: 0.3rem; }

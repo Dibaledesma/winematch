@@ -207,11 +207,22 @@ switch ("{$metodo} {$uri}") {
             }
             $rec = Maridaje::recomendar($pdo, $plato, $tipoElegido);
             Maridaje::registrarConsulta($pdo, (int) $usuario['id'], $rec['recomendacion_id']);
+            // Modo "marida tu": el comensal ya tiene un vino y quiere saber si hace match.
+            $eleccion = null;
+            if (isset($_GET['vino']) && ctype_digit((string) $_GET['vino'])) {
+                try {
+                    $eleccion = Maridaje::comprobar($pdo, $plato, (int) $_GET['vino']);
+                } catch (\InvalidArgumentException) {
+                    $eleccion = null;
+                }
+            }
             Html::cabecerasHtml();
             echo Html::render('resultado', [
                 'plato' => $plato, 'rec' => $rec, 'tipos' => $tipos, 'tipoElegido' => $tipoElegido,
                 'opiniones' => Maridaje::opiniones($pdo, $rec['vino']['id']),
                 'mia' => Opiniones::mia($pdo, (int) $usuario['id'], $rec['vino']['id']),
+                'vinos' => Maridaje::vinos($pdo),
+                'eleccion' => $eleccion,
                 'titulo' => $plato['nombre'] . ' · ' . $rec['vino']['nombre'],
             ] + $vars);
             break;
