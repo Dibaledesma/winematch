@@ -82,4 +82,14 @@ final class ModeloTest extends TestCase
         $this->assertFalse($c->secureCookies);
         $this->assertStringStartsWith('sqlite:', $c->dbDsn);
     }
+
+    public function testElPrimerArranqueCreaElEsquemaEnUnArchivoNuevo(): void
+    {
+        $ruta = sys_get_temp_dir() . '/winematch-primer-arranque-' . getmypid() . '.sqlite3';
+        @unlink($ruta);
+        $pdo = Db::connect(new Config(['APP_ENV' => 'test', 'DB_PATH' => $ruta]));
+        $tablas = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Usuarios'")->fetchColumn();
+        @unlink($ruta);
+        $this->assertSame(1, $tablas);
+    }
 }

@@ -188,6 +188,20 @@ final class HttpTest extends TestCase
         $this->assertSame('/login', $this->h->cabecera('location'));
     }
 
+    public function testUrlMalformadaConByteNuloNoProvocaError(): void
+    {
+        $anonimo = $this->h->peticion('GET', '/restaurante/%00');
+        $this->assertSame(404, $anonimo['status'], 'Rechazo de sintaxis antes de login, nunca 500');
+
+        $this->h->registrarYEntrar('nulo@ejemplo.test');
+        $base = $this->h->peticion('GET', '/no-existe')['body'];
+        foreach (['/restaurante/%00', '/restaurante/zzzzzzzzzzzzzzzzzz', '/restaurante/not-an-id'] as $ruta) {
+            $r = $this->h->peticion('GET', $ruta);
+            $this->assertSame(404, $r['status'], $ruta);
+            $this->assertSame($base, $r['body'], $ruta);
+        }
+    }
+
     public function testXssEnNombreDePlatoSeEscapa(): void
     {
         $this->h->registrarYEntrar('plato@ejemplo.test');

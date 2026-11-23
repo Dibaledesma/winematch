@@ -21,11 +21,7 @@ $config = new Config();
 if (($config->dbDriver === 'sqlite') && isset($opciones['recrear']) && is_file($config->dbPath)) {
     unlink($config->dbPath);
 }
-$pdo = Db::connect($config);
-
-if ($config->dbDriver !== 'sqlite' || isset($opciones['recrear']) || !is_file($config->dbPath)) {
-    Db::createSchema($pdo);
-}
+$pdo = Db::connect($config);   // en SQLite crea el esquema si falta
 
 $existe = $pdo->query('SELECT COUNT(*) FROM TipoVino')->fetchColumn();
 if ((int) $existe > 0 && !isset($opciones['recrear'])) {

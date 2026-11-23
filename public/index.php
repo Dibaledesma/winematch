@@ -71,7 +71,8 @@ $uri = rawurldecode((string) parse_url($ruta, PHP_URL_PATH));
 $metodo = $_SERVER['REQUEST_METHOD'];
 
 // Servidor integrado: los estaticos de public/static los sirve el propio servidor.
-$real = realpath(__DIR__ . $uri);
+// Un byte nulo en la URL hace que realpath() lance excepcion: se corta antes.
+$real = str_contains($uri, "\0") ? false : realpath(__DIR__ . $uri);
 if ($metodo === 'GET' && $real !== false && str_starts_with($real, __DIR__ . DIRECTORY_SEPARATOR . 'static' . DIRECTORY_SEPARATOR)) {
     return false;
 }

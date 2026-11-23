@@ -24,8 +24,9 @@ final class Db
 
         if ($config->dbDriver === 'sqlite') {
             $pdo->exec('PRAGMA foreign_keys = ON');
-            $esMemoria = str_ends_with($config->dbDsn, ':memory:');
-            if (!$esMemoria && !is_file($config->dbPath)) {
+            // PDO crea el archivo vacio al conectar, asi que se mira si existe el esquema.
+            $tablas = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Usuarios'")->fetchColumn();
+            if ($tablas === 0) {
                 self::createSchema($pdo);
             }
         }
