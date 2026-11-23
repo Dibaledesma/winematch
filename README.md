@@ -6,7 +6,9 @@ recomendación de la casa con el porqué del maridaje.
 
 Es la **versión 2, reconstruida y endurecida**, del proyecto final del CFGS
 Desarrollo de Aplicaciones Web (abril 2025). Misma memoria, mismos requisitos,
-otro nivel de ingeniería.
+**los mismos datos** (vinos, especias por restaurante, platos y maridajes con su
+bodega, botella y mensaje) y las mismas ilustraciones. Lo que cambia es la
+ingeniería que hay debajo.
 
 ## De la v1 a la v2
 
@@ -28,8 +30,8 @@ técnico habría encontrado. La v2 corrige cada punto, con test que lo prueba:
 | El restaurante estaba "pegado" en dos páginas (`seleccion-mas-bosson.php`, `seleccion-quatre.php`) | Entidad `Restaurante`, carta por slug, alta de platos desde el panel |
 | Ids numéricos secuenciales en las URLs | Slugs públicos: `/restaurante/mas-bosson/arroz-de-bogavante` |
 | `ORDER BY RAND()`, esquema con tablas creadas dos veces | Esquema limpio SQLite/MySQL; aleatoriedad en PHP |
-| Sin tests, sin README, sin git | 77 tests (unitarios + HTTP reales) y CI en GitHub Actions |
-| 40 MB de imágenes sin optimizar | Un CSS, cero imágenes |
+| Sin tests, sin README, sin git | 83 tests (unitarios + HTTP reales) y CI en GitHub Actions |
+| 40 MB de imágenes PNG sin optimizar | Las mismas ilustraciones originales, en WebP al tamaño de uso (737 KB) |
 
 ## Requisitos de la memoria → dónde se cumplen
 
@@ -38,35 +40,38 @@ técnico habría encontrado. La v2 corrige cada punto, con test que lo prueba:
 | RF1 Registro con nombre, correo y contraseña | `/registro` · [`Auth::registrar`](src/Auth.php) |
 | RF2 Login y cierre de sesión seguros | `/login`, `/salir` · sesión con flags y rotación de id |
 | RF3 Elegir restaurante → carta → plato (+ preferencia) | `/restaurante/{slug}` y `/restaurante/{slug}/{plato}?tipo=N` |
+| RF3 (formulario de la v1) Elegir vino y plato y pulsar "Buscar Vino" | `/restaurante/{slug}/maridar` |
 | RF3 (caso de uso 3) Elegir un vino y ver si marida con el plato | `/restaurante/{slug}/{plato}?vino=N` · [`Maridaje::comprobar`](src/Maridaje.php) |
 | RF4 Recomendación con vino, bodega y botella | [`Maridaje::recomendar`](src/Maridaje.php) |
 | RF5 Resultado claro y atractivo | [`templates/resultado.php`](templates/resultado.php) |
 | RF6 Interfaz intuitiva y responsive | [`public/static/css/winematch.css`](public/static/css/winematch.css) |
 | Actor Administrador: ver usuarios, consultar comentarios y valoraciones | `/admin` · [`Admin`](src/Admin.php) |
-| Carga de carta | `/admin/plato` y `/admin/recomendacion` |
+| Carga de carta | `/admin/especie`, `/admin/plato` y `/admin/recomendacion` |
 | RNF Seguridad | ver siguiente sección |
 | RNF Mantenibilidad: código documentado y organizado | `src/`, `templates/`, `tests/`, este README |
 
 ## Cómo funciona el maridaje
 
-El corazón es [`Maridaje::recomendar()`](src/Maridaje.php). Cada plato tiene una
-**especie aromática** (cítricos, frutos rojos, especias…) y el administrador define
-**reglas de la casa**: vino + plato + el porqué. El motor busca en este orden y
-explica al comensal qué está viendo:
+El corazón es [`Maridaje::recomendar()`](src/Maridaje.php). Como en la v1, cada
+restaurante tiene sus **especias aromáticas** (en Mas Guasón: pimienta negra,
+pimienta blanca, canela, comino…) y cada plato lleva una. La casa define sus
+**maridajes**: vino + plato + bodega + botella + el mensaje de la bodega. El motor
+busca en este orden y explica al comensal qué está viendo:
 
-1. **Regla exacta** para ese plato (y el tipo de vino pedido, si lo pidió).
-2. Si no hay: **misma especie aromática en otro plato** — "perfil parecido".
-3. Si el tipo de vino pedido no tiene nada: **misma especie sin filtrar**.
-4. Si nada de lo anterior: **cualquier sugerencia de la casa**.
+1. **Maridaje de la casa** para ese plato (y el tipo de vino pedido, si lo pidió).
+2. Si no hay: **misma especia en otro plato** — "toque parecido".
+3. Si el tipo de vino pedido no tiene nada: **misma especia sin filtrar**.
+4. Si nada de lo anterior: **cualquier maridaje de la casa**.
 
 Cada consulta queda registrada para el usuario (`Consulta`), como pedía el ER de
 la memoria.
 
-Y está el modo de la v1, **"¿Marida?"**: si el comensal ya tiene un vino en mente,
-lo elige y el sistema le dice si hace match en tres niveles — *match de la casa*
-(regla exacta), *compatible por perfil aromático* (ese vino ya es el maridaje de otro
-plato con la misma especie) o *sin regla todavía*, siempre con la sugerencia de la
-casa al lado. [`Maridaje::comprobar()`](src/Maridaje.php).
+Y están los dos modos de la v1: el formulario **"Selecciona tu maridaje"** de la
+carta (vino, plato, *Buscar Vino*) y el **"¿Marida?"**: si el comensal ya tiene un
+vino en mente, lo elige y el sistema le dice si hace match en tres niveles — *match
+de la casa*, *compatible por toque* (ese vino ya es el maridaje de otro plato con la
+misma especia) o *sin maridaje todavía*, siempre con la sugerencia de la casa al
+lado. [`Maridaje::comprobar()`](src/Maridaje.php).
 
 ## Decisiones de seguridad
 
@@ -105,8 +110,11 @@ composer serve         # http://127.0.0.1:8099
 ```
 
 `composer seed` genera una contraseña aleatoria para el admin y la muestra **una
-sola vez**. Los datos de ejemplo incluyen dos restaurantes, ocho vinos, diez platos
-y catorce reglas de maridaje.
+sola vez**. Los datos son **los de la v1**: seis vinos (Camins del Priorat, Clos de
+Agon, Pas Curtei, Calcari, Trenca Closques, Jhana Rosat), siete especias por
+restaurante, seis platos con su tipo y seis maridajes con bodega, botella y mensaje.
+Los dos restaurantes llevan nombre inventado para el portfolio (Mas Guasón y
+Quatre Lents); el resto es el contenido original del proyecto.
 
 Para MySQL: copia `.env.example` a `.env`, define `DB_DRIVER=mysql` y las
 credenciales, carga `database/schema.mysql.sql` y vuelve a ejecutar `composer seed -- --recrear`.
@@ -119,7 +127,7 @@ Para desplegar, el docroot es `public/`.
 composer test
 ```
 
-77 tests, dos familias:
+83 tests, dos familias:
 
 - **Unitarios** sobre SQLite en memoria: modelo, autenticación, motor de maridaje
   (exacto y cada escalón de degradación), opiniones y administración.
@@ -132,7 +140,7 @@ composer test
 
 ```
 public/index.php          front controller: sesión, guarda de origen, rutas, errores
-public/static/           CSS
+public/static/           CSS, ilustraciones originales de la v1 (WebP) y tipografía Forum
 src/                     Config, Db, Auth, Maridaje, Opiniones, Admin, Html, Texto, Seed
 templates/               PHP pinto con escape en cada salida
 database/                esquema SQLite y MySQL, seed

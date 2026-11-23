@@ -1,5 +1,5 @@
 <?php
-/** @var string $contenido  @var array<string, mixed>|null $usuario  @var array $flashes  @var string $titulo */
+/** @var string $contenido  @var array<string, mixed>|null $usuario  @var array $flashes  @var string $titulo  @var string $fondo */
 use WineMatch\Html;
 ?>
 <!DOCTYPE html>
@@ -8,11 +8,12 @@ use WineMatch\Html;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= Html::e($titulo ?? 'WineMatch') ?> · WineMatch</title>
+    <link rel="icon" href="/static/img/logo.webp">
     <link rel="stylesheet" href="/static/css/winematch.css">
 </head>
-<body>
+<body class="<?= isset($fondo) ? 'fondo-' . Html::e($fondo) : '' ?>">
 <header class="barra">
-    <a class="marca" href="/">WineMatch</a>
+    <a class="marca" href="/"><img src="/static/img/logo.webp" alt="" class="marca-logo">WineMatch</a>
     <nav class="barra-nav">
         <?php if ($usuario !== null): ?>
             <span class="barra-usuario">Hola, <?= Html::e($usuario['nombre']) ?></span>

@@ -1,5 +1,6 @@
 -- Esquema WineMatch v2 para SQLite. Misma estructura que schema.mysql.sql.
--- Modelo de la memoria del proyecto (ER) + Restaurante como entidad real.
+-- Modelo de datos de la v1 del proyecto (memoria DAW 2025): especias por restaurante,
+-- platos con tipo (primero/segundo/postre), maridaje con bodega y botella.
 
 PRAGMA foreign_keys = ON;
 
@@ -25,39 +26,43 @@ CREATE TABLE IF NOT EXISTS TipoVino (
 );
 
 CREATE TABLE IF NOT EXISTS Vino (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre      TEXT NOT NULL,
-    bodega      TEXT NOT NULL,
-    botella    TEXT NOT NULL DEFAULT '',
-    tipo_id     INTEGER NOT NULL REFERENCES TipoVino(id),
-    variedad    TEXT NOT NULL DEFAULT '',
-    descripcion TEXT NOT NULL DEFAULT ''
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre              TEXT NOT NULL,
+    tipo_id             INTEGER NOT NULL REFERENCES TipoVino(id),
+    variedad            TEXT NOT NULL DEFAULT '',
+    denominacion_origen  TEXT NOT NULL DEFAULT ''
 );
 
+-- Especias aromaticas, especificas de cada restaurante (como en la v1).
 CREATE TABLE IF NOT EXISTS Especie (
-    id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL UNIQUE
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurante_id INTEGER NOT NULL REFERENCES Restaurante(id),
+    nombre         TEXT NOT NULL,
+    UNIQUE (restaurante_id, nombre)
 );
 
--- Platos de la carta de cada restaurante, ligados a su especie aromatica.
+-- Platos de la carta: primero, segundo o postre, ligados a una especia de su restaurante.
 CREATE TABLE IF NOT EXISTS Comida (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurante_id INTEGER NOT NULL REFERENCES Restaurante(id),
     nombre         TEXT NOT NULL,
     slug           TEXT NOT NULL,
+    tipo           TEXT NOT NULL CHECK (tipo IN ('Primero', 'Segundo', 'Postre')),
     descripcion    TEXT NOT NULL DEFAULT '',
     especie_id     INTEGER NOT NULL REFERENCES Especie(id),
     UNIQUE (restaurante_id, slug)
 );
 CREATE INDEX IF NOT EXISTS idx_comida_restaurante ON Comida(restaurante_id);
 
--- Regla de maridaje definida por el admin: vino + especie + plato -> mensaje.
+-- Regla de maridaje de la casa: vino + especia + plato, con bodega, botella y mensaje (v1).
 CREATE TABLE IF NOT EXISTS Recomendacion (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    vino_id   INTEGER NOT NULL REFERENCES Vino(id),
-    especie_id INTEGER NOT NULL REFERENCES Especie(id),
-    comida_id INTEGER NOT NULL REFERENCES Comida(id),
-    mensaje   TEXT NOT NULL,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    vino_id       INTEGER NOT NULL REFERENCES Vino(id),
+    especie_id    INTEGER NOT NULL REFERENCES Especie(id),
+    comida_id     INTEGER NOT NULL REFERENCES Comida(id),
+    nombre_bodega TEXT NOT NULL,
+    nombre_botella TEXT NOT NULL,
+    mensaje       TEXT NOT NULL,
     UNIQUE (vino_id, especie_id, comida_id)
 );
 CREATE INDEX IF NOT EXISTS idx_recomendacion_comida ON Recomendacion(comida_id);

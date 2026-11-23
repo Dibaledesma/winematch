@@ -12,7 +12,6 @@ use WineMatch\Db;
 use WineMatch\Maridaje;
 use WineMatch\Opiniones;
 use WineMatch\Seed;
-use WineMatch\Texto;
 
 final class OpinionesTest extends TestCase
 {
@@ -31,9 +30,23 @@ final class OpinionesTest extends TestCase
         return (int) $stmt->fetchColumn();
     }
 
+    private function restaurante(string $slug): int
+    {
+        $stmt = $this->pdo->prepare('SELECT id FROM Restaurante WHERE slug = ?');
+        $stmt->execute([$slug]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function especie(string $slug, string $nombre): int
+    {
+        $stmt = $this->pdo->prepare('SELECT e.id FROM Especie e JOIN Restaurante r ON r.id = e.restaurante_id WHERE r.slug = ? AND e.nombre = ?');
+        $stmt->execute([$slug, $nombre]);
+        return (int) $stmt->fetchColumn();
+    }
+
     public function testValorarGuardaYSeActualizaSinDuplicar(): void
     {
-        $vino = $this->vino('Viña Sol');
+        $vino = $this->vino('Trenca Closques');
         Opiniones::guardar($this->pdo, 1, $vino, 4, null);
         Opiniones::guardar($this->pdo, 1, $vino, 2, null);
 
@@ -45,7 +58,7 @@ final class OpinionesTest extends TestCase
 
     public function testComentarGuardaElTexto(): void
     {
-        $vino = $this->vino('Cune Crianza');
+        $vino = $this->vino('Clos de Agon');
         Opiniones::guardar($this->pdo, 1, $vino, null, '  Un clásico  ');
         $this->assertSame('Un clásico', Opiniones::mia($this->pdo, 1, $vino)['comentario']);
     }
@@ -55,7 +68,7 @@ final class OpinionesTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage($mensaje);
-        Opiniones::guardar($this->pdo, 1, $this->vino('Cune Crianza'), $puntuacion, $comentario);
+        Opiniones::guardar($this->pdo, 1, $this->vino('Clos de Agon'), $puntuacion, $comentario);
     }
 
     public static function opinionesInvalidas(): array
@@ -75,47 +88,72 @@ final class OpinionesTest extends TestCase
         Opiniones::guardar($this->pdo, 1, 9999, 5, null);
     }
 
+    public function testAdminCreaUnaEspeciaEnSuRestaurante(): void
+    {
+        $id = Admin::crearEspecie($this->pdo, $this->restaurante('quatre-lents'), 'Ahumados');
+        $this->assertGreaterThan(7, $id);
+        $this->assertSame(8, count(Admin::especies($this->pdo)));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ya existe');
+        Admin::crearEspecie($this->pdo, $this->restaurante('quatre-lents'), 'Curry');
+    }
+
     public function testAdminCreaUnPlatoEnLaCarta(): void
     {
-        $restaurante = (int) $this->pdo->query("SELECT id FROM Restaurante WHERE slug = 'quatre-vents'")->fetchColumn();
-        $especie = (int) $this->pdo->query("SELECT id FROM Especie WHERE nombre = 'Flores blancas'")->fetchColumn();
-        $id = Admin::crearPlato($this->pdo, $restaurante, 'Gambas al ajillo', 'Gambas frescas, ajo y guindilla.', $especie);
+        $quatre = $this->restaurante('quatre-lents');
+        $id = Admin::crearPlato($this->pdo, $quatre, 'Gambas al ajillo', 'Segundo', 'Gambas frescas, ajo y guindilla.', $this->especie('quatre-lents', 'Curry'));
 
-        $this->assertGreaterThan(10, $id);
-        $carta = Maridaje::carta($this->pdo, $restaurante);
+        $this->assertGreaterThan(6, $id);
+        $carta = Maridaje::carta($this->pdo, $quatre);
+        $this->assertCount(3, $carta);
         $this->assertSame('gambas-al-ajillo', end($carta)['slug']);
-        $this->assertNotNull(Maridaje::platoPorSlug($this->pdo, 'quatre-vents', 'gambas-al-ajillo'));
     }
 
-    public function testAdminCreaPlatoInvalidoSeRechaza(): void
+    #[DataProvider('platosInvalidos')]
+    public function testAdminCreaPlatoInvalidoSeRechaza(int $restaurante, string $tipo, int $especie, string $mensaje): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Restaurante');
-        Admin::crearPlato($this->pdo, 999, 'Plato', '', 1);
+        $this->expectExceptionMessage($mensaje);
+        Admin::crearPlato($this->pdo, $restaurante, 'Plato nuevo', $tipo, '', $especie);
     }
 
-    public function testAdminCreaReglaYElPlatoYaTieneMaridajeExacto(): void
+    public static function platosInvalidos(): array
     {
-        $restaurante = (int) $this->pdo->query("SELECT id FROM Restaurante WHERE slug = 'quatre-vents'")->fetchColumn();
-        $especie = (int) $this->pdo->query("SELECT id FROM Especie WHERE nombre = 'Flores blancas'")->fetchColumn();
-        $plato = Admin::crearPlato($this->pdo, $restaurante, 'Ostras', 'Ostras de la lonja.', $especie);
-        $antes = Maridaje::recomendar($this->pdo, Maridaje::platoPorSlug($this->pdo, 'quatre-vents', 'ostras'), null);
+        return [
+            'restaurante inexistente' => [999, 'Primero', 1, 'Restaurante no válido'],
+            'tipo inválido' => [1, 'Entrante', 1, 'Primero, Segundo o Postre'],
+            'especia de otro restaurante' => [2, 'Primero', 1, 'no es del restaurante'],
+        ];
+    }
+
+    public function testAdminCreaMaridajeYElPlatoYaTieneMatchExacto(): void
+    {
+        $quatre = $this->restaurante('quatre-lents');
+        $plato = Admin::crearPlato($this->pdo, $quatre, 'Gambas al ajillo', 'Segundo', '', $this->especie('quatre-lents', 'Curry'));
+        $antes = Maridaje::recomendar($this->pdo, Maridaje::platoPorSlug($this->pdo, 'quatre-lents', 'gambas-al-ajillo'), null);
         $this->assertFalse($antes['exacta']);
 
-        Admin::crearRecomendacion($this->pdo, $this->vino('Anna de Codorníu Brut'), $plato, 'La burbuja fresca y la sal de la ostra se necesitan.');
-        $rec = Maridaje::recomendar($this->pdo, Maridaje::platoPorSlug($this->pdo, 'quatre-vents', 'ostras'), null);
+        Admin::crearRecomendacion($this->pdo, $this->vino('Jhana Rosat'), $plato, 'Clos Mogador', 'Jhana Rosat', 'La fruta rosada del Viognier suaviza el ajo y la guindilla.');
+        $rec = Maridaje::recomendar($this->pdo, Maridaje::platoPorSlug($this->pdo, 'quatre-lents', 'gambas-al-ajillo'), null);
         $this->assertTrue($rec['exacta']);
-        $this->assertSame('Anna de Codorníu Brut', $rec['vino']['nombre']);
-        $this->assertSame('La burbuja fresca y la sal de la ostra se necesitan.', $rec['mensaje']);
+        $this->assertSame('Jhana Rosat', $rec['botella']);
+        $this->assertSame('Clos Mogador', $rec['bodega']);
     }
 
-    public function testReglaDuplicadaSeRechaza(): void
+    public function testMaridajeDuplicadoSeRechaza(): void
     {
-        $plato = (int) $this->pdo->query("SELECT id FROM Comida WHERE slug = 'lubina-a-la-sal'")->fetchColumn();
-        $vino = $this->vino('Martín Códax');   // ya tiene regla para la lubina
+        $plato = (int) $this->pdo->query("SELECT id FROM Comida WHERE slug = 'crema-catalana'")->fetchColumn();
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Ya existe');
-        Admin::crearRecomendacion($this->pdo, $vino, $plato, 'Otra vez');
+        Admin::crearRecomendacion($this->pdo, $this->vino('Camins del Priorat'), $plato, 'Otra', 'Otra', 'Otra vez');
+    }
+
+    public function testMaridajeSinBodegaSeRechaza(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Indica la bodega');
+        Admin::crearRecomendacion($this->pdo, $this->vino('Calcari'), 6, '', 'Calcari', 'Mensaje');
     }
 
     public function testListadosDelPanelTienenFormaEsperada(): void
@@ -127,12 +165,14 @@ final class OpinionesTest extends TestCase
 
         $comentarios = Admin::comentarios($this->pdo);
         $this->assertCount(2, $comentarios);
-        $this->assertSame('Finca Malaveïna', $comentarios[0]['vino']);
+        $this->assertSame('Calcari', $comentarios[0]['vino']);
 
         $valoraciones = Admin::valoraciones($this->pdo);
-        $this->assertCount(8, $valoraciones);
+        $this->assertCount(6, $valoraciones);
+        $this->assertSame('Pas Curtei', $valoraciones[0]['nombre']);
         $this->assertSame(5.0, (float) $valoraciones[0]['media']);
-        $this->assertCount(10, Admin::platos($this->pdo));
-        $this->assertSame(Texto::slug('Arroz de bogavante'), 'arroz-de-bogavante');
+        $this->assertCount(6, Admin::platos($this->pdo));
+        $this->assertCount(7, Admin::especies($this->pdo));
+        $this->assertSame('Quatre Lents', Admin::especies($this->pdo)[4]['restaurante']);
     }
 }

@@ -10,7 +10,7 @@ use WineMatch\Config;
 use WineMatch\Db;
 use WineMatch\Seed;
 
-/** Esqueleto y modelo de datos: el esquema se crea, las claves foraneas se cumplen y el seed carga. */
+/** Esqueleto y modelo de datos de la v1: el esquema se crea, las claves foraneas se cumplen y el seed carga los datos originales. */
 final class ModeloTest extends TestCase
 {
     private function pdo(): PDO
@@ -25,29 +25,67 @@ final class ModeloTest extends TestCase
         $this->assertSame($esperadas, $tablas);
     }
 
-    public function testElSeedCargaDosRestaurantesDiezPlatosYCatorceReglas(): void
+    public function testElSeedCargaLosDatosDeLaV1(): void
     {
         $pdo = $this->pdo();
         Seed::run($pdo);
 
         $this->assertSame(2, (int) $pdo->query('SELECT COUNT(*) FROM Restaurante')->fetchColumn());
-        $this->assertSame(10, (int) $pdo->query('SELECT COUNT(*) FROM Comida')->fetchColumn());
-        $this->assertSame(14, (int) $pdo->query('SELECT COUNT(*) FROM Recomendacion')->fetchColumn());
-        $this->assertSame(8, (int) $pdo->query('SELECT COUNT(*) FROM Vino')->fetchColumn());
+        $this->assertSame(3, (int) $pdo->query('SELECT COUNT(*) FROM TipoVino')->fetchColumn());
+        $this->assertSame(6, (int) $pdo->query('SELECT COUNT(*) FROM Vino')->fetchColumn());
+        $this->assertSame(7, (int) $pdo->query('SELECT COUNT(*) FROM Especie')->fetchColumn());
+        $this->assertSame(6, (int) $pdo->query('SELECT COUNT(*) FROM Comida')->fetchColumn());
+        $this->assertSame(6, (int) $pdo->query('SELECT COUNT(*) FROM Recomendacion')->fetchColumn());
         $this->assertSame(3, (int) $pdo->query('SELECT COUNT(*) FROM Usuarios')->fetchColumn());
+
+        $vinos = $pdo->query('SELECT nombre FROM Vino ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+        $this->assertSame(['Camins del Priorat', 'Clos de Agon', 'Pas Curtei', 'Calcari', 'Trenca Closques', 'Jhana Rosat'], $vinos);
+        $especias = $pdo->query('SELECT nombre FROM Especie ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+        $this->assertSame(['Pimienta negra', 'Pimienta blanca', 'Canela', 'Comino', 'Clavo', 'Curry', 'Menta'], $especias);
+        $tipos = $pdo->query('SELECT tipo FROM Comida ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+        $this->assertSame(['Primero', 'Primero', 'Segundo', 'Postre', 'Primero', 'Segundo'], $tipos);
     }
 
-    public function testCadaPlatoTieneAlMenosUnMaridajeQueCoincideConSuEspecie(): void
+    public function testLosRestaurantesTienenNombreInventado(): void
     {
         $pdo = $this->pdo();
         Seed::run($pdo);
-        $sql = 'SELECT c.nombre, COUNT(r.id) AS reglas
+        $slugs = $pdo->query('SELECT slug FROM Restaurante ORDER BY slug')->fetchAll(PDO::FETCH_COLUMN);
+        $this->assertSame(['mas-guason', 'quatre-lents'], $slugs);
+        $this->assertSame(['Mas Guasón', 'Quatre Lents'], array_keys(Seed::RESTAURANTES));
+    }
+
+    public function testCadaPlatoTieneSuMaridajeConSuEspeciaYLosDatosDeLaV1(): void
+    {
+        $pdo = $this->pdo();
+        Seed::run($pdo);
+        $sql = 'SELECT c.nombre, r.nombre_bodega, r.nombre_botella, r.mensaje, v.nombre AS vino
                 FROM Comida c
-                LEFT JOIN Recomendacion r ON r.comida_id = c.id AND r.especie_id = c.especie_id
-                GROUP BY c.id';
-        foreach ($pdo->query($sql) as $fila) {
-            $this->assertGreaterThanOrEqual(1, (int) $fila['reglas'], "El plato {$fila['nombre']} no tiene maridaje");
+                JOIN Recomendacion r ON r.comida_id = c.id AND r.especie_id = c.especie_id
+                JOIN Vino v ON v.id = r.vino_id';
+        $filas = $pdo->query($sql)->fetchAll();
+        $this->assertCount(6, $filas);
+        $porPlato = array_column($filas, null, 'nombre');
+        $this->assertSame('Parés Baltà', $porPlato['Crema catalana']['nombre_bodega']);
+        $this->assertSame('Camins del Priorat', $porPlato['Crema catalana']['nombre_botella']);
+        $this->assertSame('Excelente para maridar con carnes de cerdo o guisos contundentes.', $porPlato['Crema catalana']['mensaje']);
+        $this->assertSame('Clos d\'Agon', $porPlato['Rodaballo al horno']['nombre_bodega']);
+        $this->assertSame('Cellers Can Blau', $porPlato['Tataki de atún']['nombre_bodega']);
+    }
+
+    public function testLasEspeciasPertenecenASuRestauranteDeLaV1(): void
+    {
+        $pdo = $this->pdo();
+        Seed::run($pdo);
+        $filas = $pdo->query('SELECT r.slug, e.nombre FROM Especie e JOIN Restaurante r ON r.id = e.restaurante_id')->fetchAll();
+        $por = ['mas-guason' => [], 'quatre-lents' => []];
+        foreach ($filas as $f) {
+            $por[$f['slug']][] = $f['nombre'];
         }
+        sort($por['mas-guason']);
+        sort($por['quatre-lents']);
+        $this->assertSame(['Canela', 'Comino', 'Pimienta blanca', 'Pimienta negra'], $por['mas-guason']);
+        $this->assertSame(['Clavo', 'Curry', 'Menta'], $por['quatre-lents']);
     }
 
     public function testLaClaveForaneaSeCumple(): void
@@ -55,7 +93,7 @@ final class ModeloTest extends TestCase
         $pdo = $this->pdo();
         Seed::run($pdo);
         $this->expectException(\PDOException::class);
-        $pdo->prepare('INSERT INTO Comida (restaurante_id, nombre, especie_id) VALUES (999, ?, 1)')->execute(['Plato huérfano']);
+        $pdo->prepare('INSERT INTO Comida (restaurante_id, nombre, slug, tipo, especie_id) VALUES (999, ?, ?, ?, 1)')->execute(['Plato huérfano', 'plato-huerfano', 'Primero']);
     }
 
     public function testElAdminSeCreaConHashYRolAdmin(): void

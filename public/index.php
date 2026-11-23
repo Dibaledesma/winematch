@@ -123,9 +123,8 @@ $vars = ['usuario' => $usuario, 'flashes' => Html::flashes()];
 switch ("{$metodo} {$uri}") {
     case 'GET /':
         $usuario = Auth::requiereLogin($pdo);
-        $restaurantes = $pdo->query('SELECT id, nombre, slug, descripcion FROM Restaurante ORDER BY nombre')->fetchAll();
         Html::cabecerasHtml();
-        echo Html::render('restaurantes', ['restaurantes' => $restaurantes, 'titulo' => 'Restaurantes'] + $vars);
+        echo Html::render('restaurantes', ['restaurantes' => Maridaje::restaurantes($pdo), 'titulo' => 'Restaurantes', 'fondo' => 'index'] + $vars);
         break;
 
     case 'GET /registro':
@@ -135,7 +134,7 @@ switch ("{$metodo} {$uri}") {
         $valores = $_SESSION['_formulario'] ?? ['nombre' => '', 'email' => ''];
         unset($_SESSION['_formulario']);
         Html::cabecerasHtml();
-        echo Html::render('registro', ['titulo' => 'Crear cuenta', 'valores' => $valores] + $vars);
+        echo Html::render('registro', ['titulo' => 'Crear cuenta', 'valores' => $valores, 'fondo' => 'registro'] + $vars);
         break;
 
     case 'POST /registro':
@@ -158,7 +157,7 @@ switch ("{$metodo} {$uri}") {
         $previo = $_SESSION['_formulario']['email'] ?? '';
         unset($_SESSION['_formulario']);
         Html::cabecerasHtml();
-        echo Html::render('login', ['titulo' => 'Entrar', 'email' => $previo] + $vars);
+        echo Html::render('login', ['titulo' => 'Entrar', 'email' => $previo, 'fondo' => 'login'] + $vars);
         break;
 
     case 'POST /login':
@@ -185,8 +184,21 @@ switch ("{$metodo} {$uri}") {
                 pagina404();
             }
             Html::cabecerasHtml();
-            echo Html::render('carta', ['restaurante' => $restaurante, 'platos' => Maridaje::carta($pdo, (int) $restaurante['id']), 'titulo' => $restaurante['nombre']] + $vars);
+            echo Html::render('carta', ['restaurante' => $restaurante, 'platos' => Maridaje::carta($pdo, (int) $restaurante['id']), 'vinos' => Maridaje::vinos($pdo), 'titulo' => $restaurante['nombre'], 'fondo' => 'carta'] + $vars);
             break;
+        }
+        // GET /restaurante/{slug}/maridar?vino=N&plato=slug : el formulario "Buscar Vino" de la v1.
+        if ($metodo === 'GET' && preg_match('#^/restaurante/([a-z0-9-]+)/maridar$#', $uri, $m) === 1) {
+            $usuario = Auth::requiereLogin($pdo);
+            if (Maridaje::restaurantePorSlug($pdo, $m[1]) === null || !isset($_GET['plato'])) {
+                pagina404();
+            }
+            $plato = Maridaje::platoPorSlug($pdo, $m[1], (string) $_GET['plato']);
+            if ($plato === null) {
+                pagina404();
+            }
+            $vino = isset($_GET['vino']) && ctype_digit((string) $_GET['vino']) ? '?vino=' . (int) $_GET['vino'] : '';
+            Html::redirigir("/restaurante/{$m[1]}/{$plato['slug']}{$vino}");
         }
         // /restaurante/{slug}/{plato}[?tipo=N] : el maridador.
         if ($metodo === 'GET' && preg_match('#^/restaurante/([a-z0-9-]+)/([a-z0-9-]+)$#', $uri, $m) === 1) {
@@ -223,7 +235,8 @@ switch ("{$metodo} {$uri}") {
                 'mia' => Opiniones::mia($pdo, (int) $usuario['id'], $rec['vino']['id']),
                 'vinos' => Maridaje::vinos($pdo),
                 'eleccion' => $eleccion,
-                'titulo' => $plato['nombre'] . ' · ' . $rec['vino']['nombre'],
+                'fondo' => 'resultado',
+                'titulo' => $plato['nombre'] . ' · ' . $rec['botella'],
             ] + $vars);
             break;
         }
@@ -260,10 +273,20 @@ switch ("{$metodo} {$uri}") {
             ] + $vars);
             break;
         }
+        if ($metodo === 'POST' && $uri === '/admin/especie') {
+            Auth::requiereAdmin($pdo);
+            try {
+                Admin::crearEspecie($pdo, (int) ($_POST['restaurante_id'] ?? 0), (string) ($_POST['nombre'] ?? ''));
+                Html::flash('ok', 'Especia añadida.');
+            } catch (\InvalidArgumentException $e) {
+                Html::flash('error', $e->getMessage());
+            }
+            Html::redirigir('/admin');
+        }
         if ($metodo === 'POST' && $uri === '/admin/plato') {
             Auth::requiereAdmin($pdo);
             try {
-                Admin::crearPlato($pdo, (int) ($_POST['restaurante_id'] ?? 0), (string) ($_POST['nombre'] ?? ''), (string) ($_POST['descripcion'] ?? ''), (int) ($_POST['especie_id'] ?? 0));
+                Admin::crearPlato($pdo, (int) ($_POST['restaurante_id'] ?? 0), (string) ($_POST['nombre'] ?? ''), (string) ($_POST['tipo'] ?? ''), (string) ($_POST['descripcion'] ?? ''), (int) ($_POST['especie_id'] ?? 0));
                 Html::flash('ok', 'Plato añadido a la carta.');
             } catch (\InvalidArgumentException $e) {
                 Html::flash('error', $e->getMessage());
@@ -273,8 +296,8 @@ switch ("{$metodo} {$uri}") {
         if ($metodo === 'POST' && $uri === '/admin/recomendacion') {
             Auth::requiereAdmin($pdo);
             try {
-                Admin::crearRecomendacion($pdo, (int) ($_POST['vino_id'] ?? 0), (int) ($_POST['comida_id'] ?? 0), (string) ($_POST['mensaje'] ?? ''));
-                Html::flash('ok', 'Regla de maridaje creada.');
+                Admin::crearRecomendacion($pdo, (int) ($_POST['vino_id'] ?? 0), (int) ($_POST['comida_id'] ?? 0), (string) ($_POST['bodega'] ?? ''), (string) ($_POST['botella'] ?? ''), (string) ($_POST['mensaje'] ?? ''));
+                Html::flash('ok', 'Maridaje de la casa creado.');
             } catch (\InvalidArgumentException $e) {
                 Html::flash('error', $e->getMessage());
             }

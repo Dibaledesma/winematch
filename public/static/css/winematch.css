@@ -1,4 +1,11 @@
 /* WineMatch v2: paleta de vino (tinta, crema, dorado), sin estilos inline (CSP estricta). */
+@font-face {
+    font-family: 'Forum';
+    src: url('/static/fonts/forum.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
 :root {
     --tinta: #3b0f1a;
     --vino: #7a1f2b;
@@ -158,6 +165,78 @@ textarea:focus, select:focus { outline: 2px solid var(--dorado); border-color: v
 .veredicto-parecido .veredicto-titulo { color: #8a6d0f; }
 .veredicto-sin_regla { border-left-color: var(--rubí); background: #fdf1f2; }
 .veredicto-sin_regla .veredicto-titulo { color: var(--error); }
+
+/* ===== Personalidad de la v1: tipografia Forum, fondos e ilustraciones originales ===== */
+:root { --tinta: #2b0a12; --vino: #6e1a27; --rubí: #9c2b38; --crema: #f3e9d6; --papel: #fffaf0; --dorado: #c9a227; }
+body { font-family: 'Forum', Georgia, 'Times New Roman', serif; font-size: 1.12rem; letter-spacing: 0.01em; }
+h1, h2, h3 { letter-spacing: 0.03em; }
+
+/* Fondos originales por pagina, con capa crema para que el texto respire */
+body.fondo-index { background: linear-gradient(rgba(243, 233, 214, 0.88), rgba(243, 233, 214, 0.92)), url('/static/img/fondo-index.webp') center / cover fixed no-repeat; }
+body.fondo-login { background: linear-gradient(rgba(43, 10, 18, 0.55), rgba(43, 10, 18, 0.65)), url('/static/img/fondo-login.webp') center / cover fixed no-repeat; }
+body.fondo-registro { background: linear-gradient(rgba(243, 233, 214, 0.9), rgba(243, 233, 214, 0.94)), url('/static/img/fondo-registro.webp') center / cover fixed no-repeat; }
+body.fondo-carta { background: linear-gradient(rgba(243, 233, 214, 0.9), rgba(243, 233, 214, 0.94)), url('/static/img/fondo-carta.webp') center / cover fixed no-repeat; }
+body.fondo-resultado { background: linear-gradient(rgba(243, 233, 214, 0.88), rgba(243, 233, 214, 0.92)), url('/static/img/fondo-resultado.webp') center / cover fixed no-repeat; }
+
+/* Cabecera con textura de madera original */
+.barra {
+    background: linear-gradient(rgba(43, 10, 18, 0.82), rgba(43, 10, 18, 0.9)), url('/static/img/madera.webp') center / 600px repeat;
+    border-bottom: 3px solid var(--dorado);
+}
+.marca { display: inline-flex; align-items: center; gap: 0.6rem; }
+.marca-logo { width: 44px; height: 44px; object-fit: contain; }
+
+.cabecera-pagina { text-align: center; margin: 0 auto 1rem; }
+.logo-ancho { width: min(420px, 90%); height: auto; display: block; margin: 0 auto 0.6rem; filter: drop-shadow(0 2px 6px rgba(43, 10, 18, 0.25)); }
+.cabecera-pagina h1 { margin-bottom: 0.2rem; }
+
+.escudo { width: 150px; height: auto; max-height: 110px; object-fit: contain; display: block; margin: 0 auto 0.6rem; }
+.tarjeta-restaurante { text-align: center; }
+.cabecera-restaurante { display: flex; gap: 1.2rem; align-items: center; }
+.escudo-grande { width: 170px; margin: 0; }
+.cabecera-restaurante h1 { margin-bottom: 0.2rem; }
+
+/* Formulario "Selecciona tu maridaje" como en la v1: icono a la izquierda de cada campo */
+.formulario-maridar { margin-top: 1rem; }
+.campo-con-icono { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.8rem; }
+.icono-campo { width: 64px; height: 64px; object-fit: contain; flex: none; }
+.campo-con-icono > div { flex: 1; }
+.campo-con-icono label { display: block; margin: 0 0 0.2rem; font-size: 0.95rem; color: var(--tinta-suave); }
+.boton-buscar { font-size: 1.1rem; padding: 0.7rem 1.6rem; }
+.tipo-plato { margin: 1.2rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.85rem; color: var(--vino); }
+.icono-etiqueta { width: 18px; height: 18px; vertical-align: -3px; margin-right: 0.2rem; }
+.icono-tipo { width: 22px; height: 22px; vertical-align: -6px; }
+
+/* Resultado: copa, botella y cepa originales */
+.resultado { position: relative; }
+.recomendacion-cabecera { display: flex; align-items: center; gap: 1.2rem; }
+.copa { width: 64px; height: auto; flex: none; }
+.botella-img { width: 92px; height: auto; flex: none; margin-left: auto; filter: drop-shadow(0 4px 8px rgba(43, 10, 18, 0.25)); }
+.recomendacion-cabecera > div { flex: 1; }
+.recomendacion h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--vino); margin: 0.2rem 0 0; }
+.recomendacion h3 { font-size: 2rem; margin: 0 0 0.4rem; }
+.ficha-vino { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.6rem 1.4rem; margin: 1.2rem 0; }
+.ficha-vino div { border-left: 3px solid var(--dorado); padding-left: 0.7rem; }
+.ficha-vino dt { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tinta-suave); }
+.ficha-vino dd { margin: 0; font-size: 1.08rem; }
+.cepa { pointer-events: none; position: absolute; right: -40px; top: 42%; width: 220px; opacity: 0.35; z-index: -1; }
+.cepa img { width: 100%; height: auto; }
+
+/* Admin */
+.tres-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
+.tres-columnas h3 { margin: 0.6rem 0 0; }
+.bodegas { text-align: center; }
+.bodegas-logos { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; align-items: center; }
+.bodegas-logos img { width: 120px; height: auto; max-height: 90px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(43, 10, 18, 0.15)); transition: transform 0.15s; }
+.bodegas-logos a:hover img { transform: scale(1.06); }
+
+@media (max-width: 600px) {
+    .cabecera-restaurante { flex-direction: column; text-align: center; }
+    .campo-con-icono { gap: 0.6rem; }
+    .icono-campo { width: 44px; height: 44px; }
+    .botella-img { display: none; }
+    .cepa { display: none; }
+}
 @media (max-width: 600px) {
     .plato { grid-template-columns: 1fr; }
     .plato .etiqueta { grid-column: 1; grid-row: auto; margin-top: 0.3rem; }

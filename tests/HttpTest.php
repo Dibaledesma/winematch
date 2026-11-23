@@ -76,7 +76,7 @@ final class HttpTest extends TestCase
 
         $inicio = $this->h->peticion('GET', '/');
         $this->assertSame(200, $inicio['status']);
-        $this->assertStringContainsString('Mas Bosson', $inicio['body']);
+        $this->assertStringContainsString('Mas Guasón', $inicio['body']);
         $this->assertStringContainsString('href="/admin"', $inicio['body']);
     }
 
@@ -154,27 +154,48 @@ final class HttpTest extends TestCase
     public function testCartaYMaridajeDeUnPlato(): void
     {
         $this->h->registrarYEntrar('come@ejemplo.test');
-        $carta = $this->h->peticion('GET', '/restaurante/mas-bosson');
+        $carta = $this->h->peticion('GET', '/restaurante/mas-guason');
         $this->assertSame(200, $carta['status']);
-        $this->assertStringContainsString('Arroz de bogavante', $carta['body']);
-        $this->assertStringContainsString('href="/restaurante/mas-bosson/arroz-de-bogavante"', $carta['body']);
+        $this->assertStringContainsString('Crema catalana', $carta['body']);
+        $this->assertStringContainsString('href="/restaurante/mas-guason/crema-catalana"', $carta['body']);
 
-        $resultado = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante');
+        $resultado = $this->h->peticion('GET', '/restaurante/mas-guason/crema-catalana');
         $this->assertSame(200, $resultado['status']);
         $this->assertStringContainsString('Maridaje de la casa', $resultado['body']);
-        $this->assertMatchesRegularExpression('/(Martín Códax|Muga Rosado)/u', $resultado['body']);
+        $this->assertStringContainsString('Camins del Priorat', $resultado['body']);
+        $this->assertStringContainsString('Parés Baltà', $resultado['body']);
 
-        $rosado = (int) Servidor::pdo()->query("SELECT id FROM TipoVino WHERE nombre = 'Rosado'")->fetchColumn();
-        $conTipo = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante?tipo=' . $rosado);
+        // El tipo de vino pedido se respeta cuando hay maridaje: carpaccio con tinto.
+        $tinto = (int) Servidor::pdo()->query("SELECT id FROM TipoVino WHERE nombre = 'Tinto'")->fetchColumn();
+        $conTipo = $this->h->peticion('GET', '/restaurante/mas-guason/carpaccio-de-pie-de-cerdo?tipo=' . $tinto);
         $this->assertSame(200, $conTipo['status']);
-        $this->assertStringContainsString('Muga Rosado', $conTipo['body']);
+        $this->assertStringContainsString('Pas Curtei', $conTipo['body']);
+    }
+
+    public function testElFormularioBuscarVinoDeLaV1LlevaAlResultado(): void
+    {
+        $this->h->registrarYEntrar('busca@ejemplo.test');
+        $carta = $this->h->peticion('GET', '/restaurante/mas-guason');
+        $this->assertStringContainsString('Selecciona tu maridaje', $carta['body']);
+        $this->assertStringContainsString('Buscar Vino', $carta['body']);
+        $this->assertStringContainsString('Bodegas colaboradoras', $carta['body']);
+        $this->assertStringContainsString('/static/img/restaurante-mas-guason.webp', $carta['body']);
+
+        $calcari = (int) Servidor::pdo()->query("SELECT id FROM Vino WHERE nombre = 'Calcari'")->fetchColumn();
+        $r = $this->h->peticion('GET', "/restaurante/mas-guason/maridar?vino={$calcari}&plato=crema-catalana");
+        $this->assertSame(303, $r['status']);
+        $this->assertSame("/restaurante/mas-guason/crema-catalana?vino={$calcari}", $this->h->cabecera('location'));
+
+        // Un plato de otro restaurante no se puede maridar desde esta carta.
+        $r = $this->h->peticion('GET', "/restaurante/mas-guason/maridar?vino={$calcari}&plato=tataki-de-atun");
+        $this->assertSame(404, $r['status']);
     }
 
     public function testTipoDeVinoInvalidoSeIgnoraSinError(): void
     {
         $this->h->registrarYEntrar('tipo@ejemplo.test');
         foreach (['999', 'abc', '-1', '1 OR 1=1'] as $valor) {
-            $r = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante?tipo=' . rawurlencode($valor));
+            $r = $this->h->peticion('GET', '/restaurante/mas-guason/crema-catalana?tipo=' . rawurlencode($valor));
             $this->assertSame(200, $r['status'], "tipo={$valor}");
         }
     }
@@ -183,7 +204,7 @@ final class HttpTest extends TestCase
     {
         $antes = (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Consulta')->fetchColumn();
         $this->h->registrarYEntrar('historial@ejemplo.test');
-        $this->h->peticion('GET', '/restaurante/quatre-vents/chuleton-de-vaca-vieja');
+        $this->h->peticion('GET', '/restaurante/quatre-lents/tataki-de-atun');
         $despues = (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Consulta')->fetchColumn();
         $this->assertSame($antes + 1, $despues);
     }
@@ -192,7 +213,7 @@ final class HttpTest extends TestCase
     {
         $this->h->registrarYEntrar('cuatro@ejemplo.test');
         $base = $this->h->peticion('GET', '/no-existe')['body'];
-        foreach (['/restaurante/no-existe', '/restaurante/mas-bosson/no-existe', '/restaurante/quatre-vents/arroz-de-bogavante'] as $ruta) {
+        foreach (['/restaurante/no-existe', '/restaurante/mas-guason/no-existe', '/restaurante/quatre-lents/crema-catalana'] as $ruta) {
             $r = $this->h->peticion('GET', $ruta);
             $this->assertSame(404, $r['status'], $ruta);
             $this->assertSame($base, $r['body'], $ruta);
@@ -201,7 +222,7 @@ final class HttpTest extends TestCase
 
     public function testSinSesionLaCartaRedirigeALogin(): void
     {
-        $r = $this->h->peticion('GET', '/restaurante/mas-bosson');
+        $r = $this->h->peticion('GET', '/restaurante/mas-guason');
         $this->assertSame(303, $r['status']);
         $this->assertSame('/login', $this->h->cabecera('location'));
     }
@@ -223,8 +244,8 @@ final class HttpTest extends TestCase
     public function testXssEnNombreDePlatoSeEscapa(): void
     {
         $this->h->registrarYEntrar('plato@ejemplo.test');
-        Servidor::pdo()->exec("UPDATE Comida SET nombre = '<script>alert(1)</script>' WHERE slug = 'arroz-de-bogavante'");
-        $carta = $this->h->peticion('GET', '/restaurante/mas-bosson');
+        Servidor::pdo()->exec("UPDATE Comida SET nombre = '<script>alert(1)</script>' WHERE slug = 'crema-catalana'");
+        $carta = $this->h->peticion('GET', '/restaurante/mas-guason');
         $this->assertStringNotContainsString('<script>alert(1)</script>', $carta['body']);
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $carta['body']);
     }
@@ -233,19 +254,19 @@ final class HttpTest extends TestCase
     {
         $this->h->registrarYEntrar('marida@ejemplo.test');
         $pdo = Servidor::pdo();
-        $codax = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Martín Códax'")->fetchColumn();
-        $recaredo = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Recaredo Brut Nature'")->fetchColumn();
-        $base = '/restaurante/mas-bosson/arroz-de-bogavante';
+        $camins = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Camins del Priorat'")->fetchColumn();
+        $calcari = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Calcari'")->fetchColumn();
+        $base = '/restaurante/mas-guason/crema-catalana';
 
         $pagina = $this->h->peticion('GET', $base);
         $this->assertStringContainsString('¿Marida?', $pagina['body']);
         $this->assertStringNotContainsString('veredicto-', $pagina['body']);
 
-        $match = $this->h->peticion('GET', $base . '?vino=' . $codax);
+        $match = $this->h->peticion('GET', $base . '?vino=' . $camins);
         $this->assertStringContainsString('Match de la casa', $match['body']);
 
-        $sin = $this->h->peticion('GET', $base . '?vino=' . $recaredo);
-        $this->assertStringContainsString('Sin regla todavía', $sin['body']);
+        $sin = $this->h->peticion('GET', $base . '?vino=' . $calcari);
+        $this->assertStringContainsString('Sin maridaje todavía', $sin['body']);
 
         $invalido = $this->h->peticion('GET', $base . '?vino=999');
         $this->assertSame(200, $invalido['status']);
@@ -265,13 +286,13 @@ final class HttpTest extends TestCase
     public function testOpinarGuardaYSeMuestraEnElResultado(): void
     {
         $this->h->registrarYEntrar('opina@ejemplo.test');
-        $blanco = (int) Servidor::pdo()->query("SELECT id FROM TipoVino WHERE nombre = 'Blanco'")->fetchColumn();
-        $url = '/restaurante/mas-bosson/arroz-de-bogavante?tipo=' . $blanco;
+        $tinto = (int) Servidor::pdo()->query("SELECT id FROM TipoVino WHERE nombre = 'Tinto'")->fetchColumn();
+        $url = '/restaurante/mas-guason/carpaccio-de-pie-de-cerdo?tipo=' . $tinto;
         $pagina = $this->h->peticion('GET', $url);
         preg_match('/name="vino_id" value="(\d+)"/', $pagina['body'], $m);
         $vinoId = (int) $m[1];
 
-        $r = $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar?tipo=' . $blanco, ['vino_id' => $vinoId, 'puntuacion' => '4', 'comentario' => 'Muy buen maridaje'], ['Origin' => $this->h->origen()]);
+        $r = $this->h->peticion('POST', '/restaurante/mas-guason/carpaccio-de-pie-de-cerdo/opinar?tipo=' . $tinto, ['vino_id' => $vinoId, 'puntuacion' => '4', 'comentario' => 'Muy buen maridaje'], ['Origin' => $this->h->origen()]);
         $this->assertSame(303, $r['status']);
         $this->assertSame($url, $this->h->cabecera('location'));
 
@@ -283,7 +304,7 @@ final class HttpTest extends TestCase
     public function testOpinarSinOrigenSeRechaza(): void
     {
         $this->h->registrarYEntrar('opina2@ejemplo.test');
-        $r = $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '5']);
+        $r = $this->h->peticion('POST', '/restaurante/mas-guason/crema-catalana/opinar', ['vino_id' => 1, 'puntuacion' => '5']);
         $this->assertSame(403, $r['status']);
     }
 
@@ -291,8 +312,8 @@ final class HttpTest extends TestCase
     {
         $this->h->registrarYEntrar('opina3@ejemplo.test');
         $antes = (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Valoracion')->fetchColumn();
-        $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '9', 'comentario' => ''], ['Origin' => $this->h->origen()]);
-        $pagina = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante');
+        $this->h->peticion('POST', '/restaurante/mas-guason/crema-catalana/opinar', ['vino_id' => 1, 'puntuacion' => '9', 'comentario' => ''], ['Origin' => $this->h->origen()]);
+        $pagina = $this->h->peticion('GET', '/restaurante/mas-guason/crema-catalana');
         $this->assertStringContainsString('entre 1 y 5', $pagina['body']);
         $this->assertSame($antes, (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Valoracion')->fetchColumn());
     }
@@ -300,8 +321,8 @@ final class HttpTest extends TestCase
     public function testXssEnComentarioSeEscapa(): void
     {
         $this->h->registrarYEntrar('opina4@ejemplo.test');
-        $this->h->peticion('POST', '/restaurante/mas-bosson/arroz-de-bogavante/opinar', ['vino_id' => 1, 'puntuacion' => '', 'comentario' => '<script>alert(1)</script>'], ['Origin' => $this->h->origen()]);
-        $pagina = $this->h->peticion('GET', '/restaurante/mas-bosson/arroz-de-bogavante');
+        $this->h->peticion('POST', '/restaurante/mas-guason/crema-catalana/opinar', ['vino_id' => 1, 'puntuacion' => '', 'comentario' => '<script>alert(1)</script>'], ['Origin' => $this->h->origen()]);
+        $pagina = $this->h->peticion('GET', '/restaurante/mas-guason/crema-catalana');
         $this->assertStringNotContainsString('<script>alert(1)</script>', $pagina['body']);
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $pagina['body']);
     }
@@ -321,25 +342,29 @@ final class HttpTest extends TestCase
         $this->assertStringContainsString('Últimos comentarios', $panel['body']);
     }
 
-    public function testAdminCargaUnPlatoYUnaReglaDeMaridaje(): void
+    public function testAdminCargaUnaEspeciaUnPlatoYUnMaridaje(): void
     {
         $admin = $this->entrarComoAdmin();
         $pdo = Servidor::pdo();
-        $restaurante = (int) $pdo->query("SELECT id FROM Restaurante WHERE slug = 'quatre-vents'")->fetchColumn();
-        $especie = (int) $pdo->query("SELECT id FROM Especie WHERE nombre = 'Flores blancas'")->fetchColumn();
-        $vino = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Anna de Codorníu Brut'")->fetchColumn();
+        $restaurante = (int) $pdo->query("SELECT id FROM Restaurante WHERE slug = 'quatre-lents'")->fetchColumn();
 
-        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => $restaurante, 'nombre' => 'Ostras de la lonja', 'descripcion' => 'Media docena.', 'especie_id' => $especie], ['Origin' => $admin->origen()]);
+        $r = $admin->peticion('POST', '/admin/especie', ['restaurante_id' => $restaurante, 'nombre' => 'Ahumados'], ['Origin' => $admin->origen()]);
         $this->assertSame(303, $r['status']);
-        $this->assertStringContainsString('Ostras de la lonja', $admin->peticion('GET', '/restaurante/quatre-vents')['body']);
+        $especie = (int) $pdo->query("SELECT e.id FROM Especie e WHERE e.nombre = 'Ahumados' AND e.restaurante_id = {$restaurante}")->fetchColumn();
+        $vino = (int) $pdo->query("SELECT id FROM Vino WHERE nombre = 'Jhana Rosat'")->fetchColumn();
+
+        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => $restaurante, 'nombre' => 'Ostras de la lonja', 'tipo' => 'Primero', 'descripcion' => 'Media docena.', 'especie_id' => $especie], ['Origin' => $admin->origen()]);
+        $this->assertSame(303, $r['status']);
+        $this->assertStringContainsString('Ostras de la lonja', $admin->peticion('GET', '/restaurante/quatre-lents')['body']);
 
         $plato = (int) $pdo->query("SELECT id FROM Comida WHERE slug = 'ostras-de-la-lonja'")->fetchColumn();
-        $r = $admin->peticion('POST', '/admin/recomendacion', ['vino_id' => $vino, 'comida_id' => $plato, 'mensaje' => 'La burbuja fresca y la sal de la ostra se necesitan.'], ['Origin' => $admin->origen()]);
+        $r = $admin->peticion('POST', '/admin/recomendacion', ['vino_id' => $vino, 'comida_id' => $plato, 'bodega' => 'Clos Mogador', 'botella' => 'Jhana Rosat', 'mensaje' => 'La fruta rosada del Viognier abraza la sal de la ostra.'], ['Origin' => $admin->origen()]);
         $this->assertSame(303, $r['status']);
 
-        $resultado = $admin->peticion('GET', '/restaurante/quatre-vents/ostras-de-la-lonja');
+        $resultado = $admin->peticion('GET', '/restaurante/quatre-lents/ostras-de-la-lonja');
         $this->assertStringContainsString('Maridaje de la casa', $resultado['body']);
-        $this->assertStringContainsString('Anna de Codorníu Brut', $resultado['body']);
+        $this->assertStringContainsString('Jhana Rosat', $resultado['body']);
+        $this->assertStringContainsString('Clos Mogador', $resultado['body']);
     }
 
     public function testAdminSinOrigenOConDatosInvalidosNoGuarda(): void
@@ -350,7 +375,7 @@ final class HttpTest extends TestCase
         $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => 1, 'nombre' => 'X', 'especie_id' => 1]);
         $this->assertSame(403, $r['status']);
 
-        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => 999, 'nombre' => 'Plato', 'especie_id' => 1], ['Origin' => $admin->origen()]);
+        $r = $admin->peticion('POST', '/admin/plato', ['restaurante_id' => 999, 'nombre' => 'Plato', 'tipo' => 'Primero', 'especie_id' => 1], ['Origin' => $admin->origen()]);
         $this->assertSame(303, $r['status']);
         $this->assertStringContainsString('Restaurante no válido', $admin->peticion('GET', '/admin')['body']);
         $this->assertSame($antes, (int) Servidor::pdo()->query('SELECT COUNT(*) FROM Comida')->fetchColumn());

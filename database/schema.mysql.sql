@@ -1,4 +1,6 @@
 -- Esquema WineMatch v2 para MySQL 8 (InnoDB). Misma estructura que schema.sqlite.sql.
+-- Modelo de datos de la v1 del proyecto (memoria DAW 2025): especias por restaurante,
+-- platos con tipo (primero/segundo/postre), maridaje con bodega y botella.
 -- Uso: mysql -u usuario -p basedatos < database/schema.mysql.sql
 
 CREATE TABLE IF NOT EXISTS Usuarios (
@@ -23,19 +25,20 @@ CREATE TABLE IF NOT EXISTS TipoVino (
 ) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS Vino (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(160) NOT NULL,
-    bodega      VARCHAR(160) NOT NULL,
-    botella    VARCHAR(160) NOT NULL DEFAULT '',
-    tipo_id     INT NOT NULL,
-    variedad    VARCHAR(120) NOT NULL DEFAULT '',
-    descripcion TEXT NOT NULL,
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    nombre             VARCHAR(160) NOT NULL,
+    tipo_id            INT NOT NULL,
+    variedad           VARCHAR(150) NOT NULL DEFAULT '',
+    denominacion_origen VARCHAR(150) NOT NULL DEFAULT '',
     CONSTRAINT fk_vino_tipo FOREIGN KEY (tipo_id) REFERENCES TipoVino(id)
 ) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS Especie (
-    id     INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(60) NOT NULL UNIQUE
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    restaurante_id INT NOT NULL,
+    nombre         VARCHAR(120) NOT NULL,
+    CONSTRAINT fk_especie_restaurante FOREIGN KEY (restaurante_id) REFERENCES Restaurante(id),
+    UNIQUE KEY uq_especie (restaurante_id, nombre)
 ) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS Comida (
@@ -43,6 +46,7 @@ CREATE TABLE IF NOT EXISTS Comida (
     restaurante_id INT NOT NULL,
     nombre         VARCHAR(160) NOT NULL,
     slug           VARCHAR(160) NOT NULL,
+    tipo           ENUM('Primero', 'Segundo', 'Postre') NOT NULL,
     descripcion    TEXT NOT NULL,
     especie_id     INT NOT NULL,
     CONSTRAINT fk_comida_restaurante FOREIGN KEY (restaurante_id) REFERENCES Restaurante(id),
@@ -52,11 +56,13 @@ CREATE TABLE IF NOT EXISTS Comida (
 ) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS Recomendacion (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    vino_id    INT NOT NULL,
-    especie_id INT NOT NULL,
-    comida_id  INT NOT NULL,
-    mensaje    TEXT NOT NULL,
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    vino_id        INT NOT NULL,
+    especie_id     INT NOT NULL,
+    comida_id      INT NOT NULL,
+    nombre_bodega  VARCHAR(200) NOT NULL,
+    nombre_botella VARCHAR(200) NOT NULL,
+    mensaje        TEXT NOT NULL,
     UNIQUE KEY uq_recomendacion (vino_id, especie_id, comida_id),
     CONSTRAINT fk_rec_vino FOREIGN KEY (vino_id) REFERENCES Vino(id),
     CONSTRAINT fk_rec_especie FOREIGN KEY (especie_id) REFERENCES Especie(id),
