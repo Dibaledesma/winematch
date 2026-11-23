@@ -47,15 +47,48 @@ set_exception_handler(static function (\Throwable $e) use ($config): void {
     exit;
 });
 
-/** Guarda de origen: todo POST debe venir de este mismo sitio (CSRF). */
+/**
+ * Guarda anti-CSRF para todo POST. Acepta solo peticiones del mismo origen, con
+ * la senal mas fiable disponible: Fetch Metadata (Sec-Fetch-Site, no falsificable
+ * por JavaScript) > Origin exacto > Referer del mismo origen. Sin ninguna: 403.
+ */
 function origenValido(): bool
 {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return true;
     }
     $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($host === '') {
+        return false;
+    }
+    $fetchSite = strtolower($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '');
+    if ($fetchSite !== '') {
+        return $fetchSite === 'same-origin';
+    }
     $origen = $_SERVER['HTTP_ORIGIN'] ?? '';
-    return $host !== '' && ($origen === 'http://' . $host || $origen === 'https://' . $host);
+    if ($origen !== '') {
+        return mismoHost($origen, $host);
+    }
+    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    if ($referer !== '') {
+        return mismoHost($referer, $host);
+    }
+    return false;
+}
+
+/** Comprueba si una URL (Origin o Referer) apunta al mismo host:puerto que la peticion. */
+function mismoHost(string $url, string $host): bool
+{
+    $u = parse_url($url);
+    if (!is_array($u) || !isset($u['host'])) {
+        return false;
+    }
+    $conPuerto = $u['host'] . (isset($u['port']) ? ':' . $u['port'] : '');
+    $sinPuerto = $u['host'];
+    $hostSinPuerto = preg_replace('/:\d+$/', '', $host) ?? $host;
+    // Con puerto explicito debe coincidir; sin puerto solo si la peticion tampoco lo lleva
+    // (80/443 implicitos).
+    return $conPuerto === $host || (!isset($u['port']) && $sinPuerto === $hostSinPuerto);
 }
 
 function pagina404(): never

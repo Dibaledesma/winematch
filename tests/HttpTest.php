@@ -41,6 +41,24 @@ final class HttpTest extends TestCase
         $this->assertSame(403, $r['status']);
     }
 
+    public function testGuardaAceptaSenalesMismoOrigenYRechazaAjenas(): void
+    {
+        $ok = ['email' => Servidor::EMAIL_ADMIN, 'password' => Servidor::$adminPass];
+        $casos = [
+            'Sec-Fetch-Site' => ['same-origin', 303],
+            'Referer' => [$this->h->origen() . '/login', 303],
+        ];
+        foreach ($casos as $cabecera => [$valor, $esperado]) {
+            $h = new Http();
+            $this->assertSame($esperado, $h->peticion('POST', '/login', $ok, [$cabecera => $valor])['status'], $cabecera);
+        }
+        // Fetch Metadata manda sobre el resto: cross-site con Origin bueno sigue siendo 403.
+        $r = $this->h->peticion('POST', '/login', $ok, ['Sec-Fetch-Site' => 'cross-site', 'Origin' => $this->h->origen()]);
+        $this->assertSame(403, $r['status']);
+        $r = $this->h->peticion('POST', '/login', $ok, ['Referer' => 'https://evil.example/login']);
+        $this->assertSame(403, $r['status']);
+    }
+
     public function testPostConOrigenAjenoSeRechaza(): void
     {
         $r = $this->h->peticion('POST', '/login', ['email' => Servidor::EMAIL_ADMIN, 'password' => 'x'], ['Origin' => 'https://evil.example']);
