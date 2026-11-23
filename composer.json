@@ -17,6 +17,11 @@
       "WineMatch\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "WineMatch\\Tests\\": "tests/"
+    }
+  },
   "scripts": {
     "test": "phpunit",
     "seed": "php database/seed.php",
