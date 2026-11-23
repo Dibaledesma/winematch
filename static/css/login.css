@@ -1,0 +1,164 @@
+/* === ESTILOS BASE PARA PAGINA DE LOGIN === */
+body {
+  margin: 0;
+  padding: 0;
+  background: url('../img/login1.png') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Forum', serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+}
+
+/* LOGO CENTRADO ARRIBA */
+.logo-centro {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.logo-centro img {
+  width: 450px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* CONTENEDOR DEL FORMULARIO */
+.login-contenedor {
+  background-color: rgba(255, 255, 255, 0.07);
+  padding: 30px;
+  margin-top: 20px;
+  border-radius: 20px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-align: center;
+}
+
+/* TITULO DEL LOGIN */
+.titulo-login {
+  background: url('../img/madera-textura.png') center/cover;
+  padding: 20px 40px;
+  border-radius: 15px;
+  font-size: 36px;
+  color: #f5f0e6;
+  font-weight: bold;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+  border: 2px solid rgba(255,255,255,0.2);
+  margin-bottom: 30px;
+}
+
+/* INPUTS DE FORMULARIO */
+.input-box {
+  background-color: rgba(60, 30, 10, 0.8);
+  color: white;
+  padding: 15px 20px;
+  margin: 15px 0;
+  border-radius: 10px;
+  font-size: 20px;
+  border: 2px solid #fff;
+  width: 300px;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+}
+
+/* BOTONES LOGIN */
+.botones-login {
+  margin-top: 30px;
+}
+
+.btn-login {
+  background: url('../img/madera-textura.png') center/cover;
+  color: #ffffff;
+  padding: 12px 30px;
+  margin: 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,255,255,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: inline-block;
+}
+
+.btn-login:hover {
+  transform: scale(1.08);
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.8);
+}
+
+/* BLOQUE DE COLABORADORES */
+.restaurantes-colaboradores {
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 15px 20px;
+  border-radius: 14px;
+  text-align: center;
+  z-index: 9999;
+  font-size: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.restaurantes-titulo {
+  font-size: 20px;
+  color: #f5f0e6;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.restaurantes-colaboradores a img {
+  height: 70px;
+  max-width: 70px;
+  margin: 0 8px;
+  transition: transform 0.3s ease;
+  vertical-align: middle;
+  object-fit: contain;
+  padding: 3px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.restaurantes-colaboradores a img:hover {
+  transform: scale(1.05);
+}
+
+/* === PARA MOVILES === */
+@media screen and (max-width: 600px) {
+  .logo-centro img {
+    width: 280px;
+  }
+
+  .titulo-login {
+    font-size: 26px;
+    padding: 15px 25px;
+  }
+
+  .input-box {
+    width: 90%;
+    font-size: 18px;
+    padding: 12px;
+  }
+
+  .btn-login {
+    width: 90%;
+    font-size: 18px;
+  }
+
+  .restaurantes-colaboradores {
+    position: static;
+    margin-top: 30px;
+    background: rgba(0,0,0,0.6);
+  }
+
+  .restaurantes-colaboradores a img {
+    height: 50px;
+    max-width: 50px;
+  }
+}

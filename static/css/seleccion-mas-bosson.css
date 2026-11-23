@@ -1,0 +1,177 @@
+/* === ESTILO GENERAL PARA MAS BOSSON === */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Forum', serif;
+    background: url('../img/seleccion.png') no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.pagina {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logo-restaurante {
+    width: 100px;
+    height: auto;
+}
+
+.contenedor {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    text-align: center;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+h1 {
+    font-size: 32px;
+    color: #4b2e2e;
+    margin-bottom: 30px;
+}
+
+.formulario {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.campo {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.campo img {
+    width: 35px;
+    height: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.campo label {
+    font-size: 18px;
+    color: #5a3a28;
+    min-width: 150px;
+    text-align: left;
+}
+
+.campo select {
+    width: 100%;
+    padding: 8px 16px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #fffaf5;
+    box-sizing: border-box;
+    text-align: center;
+    appearance: none;
+}
+
+.campo select:focus {
+    outline: none;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-buscar {
+    margin-top: 20px;
+    padding: 12px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #800020;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+}
+
+.btn-buscar:hover {
+    background-color: #a52a2a;
+    transform: scale(1.05);
+}
+
+.btn-volver {
+    background-color: #FFEB8A;
+    color: #000000;
+    padding: 10px 25px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 16px;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+    margin-left: 10px;
+}
+
+.btn-volver:hover {
+    background-color: #FCD31D;
+}
+
+.bodegas-colaboradoras {
+    width: 100%;
+    text-align: center;
+    margin-top: 40px;
+    padding-bottom: 40px;
+}
+
+.bodegas-colaboradoras h3 {
+    color: #999;
+    font-size: 35px;
+    margin-bottom: 20px;
+    font-weight: normal;
+}
+
+.bodegas-colaboradoras img {
+    width: 150px;
+    margin: 0 20px;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.bodegas-colaboradoras img:hover {
+    transform: scale(1.08);
+}
+
+/* === PARA MOVILES=== */
+@media screen and (max-width: 768px) {
+  .contenedor {
+    padding: 20px;
+  }
+
+  .campo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .campo label {
+    min-width: unset;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .btn-buscar,
+  .btn-volver {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .bodegas-colaboradoras img {
+    width: 100px;
+    margin: 10px;
+  }
+} 
