@@ -38,17 +38,17 @@ final class Seed
             ['Anna de Codorníu Brut', 'Codorníu', '750 ml', $tipos['Espumoso'], 'Chardonnay, Parellada, Macabeo', 'Cava fresco: manzana y cítricos, burbuja fina.'],
         ]);
 
-        $comidas = self::insertar($pdo, 'Comida', ['restaurante_id', 'nombre', 'descripcion', 'especie_id'], [
-            [$restaurantes['Mas Bosson'], 'Arroz de bogavante', 'Arroz meloso con bogavante, sofrito de marisco y azafrán.', $especies['Fruta madura']],
-            [$restaurantes['Mas Bosson'], 'Sepia a la brasa con alioli', 'Sepia de la lonja, brasa suave y alioli de ajo asado.', $especies['Cítricos']],
-            [$restaurantes['Mas Bosson'], 'Canelones de ternera', 'Canelones de casa, bechamel ligera y canela en el relleno.', $especies['Especias']],
-            [$restaurantes['Mas Bosson'], 'Pollo de payés con setas', 'Pollo de payés guisado con setas de temporada y romero.', $especies['Hierbas frescas']],
-            [$restaurantes['Mas Bosson'], 'Bacalao con pisto', 'Bacalao confitado sobre pisto maduro de la huerta.', $especies['Fruta madura']],
-            [$restaurantes['Quatre Vents'], 'Chuletón de vaca vieja', 'Chuletón madurado 40 días, brasa de encina.', $especies['Frutos rojos']],
-            [$restaurantes['Quatre Vents'], 'Costillas glaseadas con miel', 'Costillas largas, glaseado de miel y especias dulces.', $especies['Especias']],
-            [$restaurantes['Quatre Vents'], 'Verduras de la huerta a la brasa', 'Verduras de temporada a la brasa, aceite de oliva y sal en escamas.', $especies['Hierbas frescas']],
-            [$restaurantes['Quatre Vents'], 'Hamburguesa de buey', 'Buey picado a cuchillo, queso curado y cebolla confitada.', $especies['Frutos rojos']],
-            [$restaurantes['Quatre Vents'], 'Lubina a la sal', 'Lubina de la lonja a la sal, limón y aceite.', $especies['Cítricos']],
+        $comidas = self::insertar($pdo, 'Comida', ['restaurante_id', 'nombre', 'slug', 'descripcion', 'especie_id'], [
+            [$restaurantes['Mas Bosson'], 'Arroz de bogavante', 'arroz-de-bogavante', 'Arroz meloso con bogavante, sofrito de marisco y azafrán.', $especies['Fruta madura']],
+            [$restaurantes['Mas Bosson'], 'Sepia a la brasa con alioli', 'sepia-a-la-brasa-con-alioli', 'Sepia de la lonja, brasa suave y alioli de ajo asado.', $especies['Cítricos']],
+            [$restaurantes['Mas Bosson'], 'Canelones de ternera', 'canelones-de-ternera', 'Canelones de casa, bechamel ligera y canela en el relleno.', $especies['Especias']],
+            [$restaurantes['Mas Bosson'], 'Pollo de payés con setas', 'pollo-de-payes-con-setas', 'Pollo de payés guisado con setas de temporada y romero.', $especies['Hierbas frescas']],
+            [$restaurantes['Mas Bosson'], 'Bacalao con pisto', 'bacalao-con-pisto', 'Bacalao confitado sobre pisto maduro de la huerta.', $especies['Fruta madura']],
+            [$restaurantes['Quatre Vents'], 'Chuletón de vaca vieja', 'chuleton-de-vaca-vieja', 'Chuletón madurado 40 días, brasa de encina.', $especies['Frutos rojos']],
+            [$restaurantes['Quatre Vents'], 'Costillas glaseadas con miel', 'costillas-glaseadas-con-miel', 'Costillas largas, glaseado de miel y especias dulces.', $especies['Especias']],
+            [$restaurantes['Quatre Vents'], 'Verduras de la huerta a la brasa', 'verduras-de-la-huerta-a-la-brasa', 'Verduras de temporada a la brasa, aceite de oliva y sal en escamas.', $especies['Hierbas frescas']],
+            [$restaurantes['Quatre Vents'], 'Hamburguesa de buey', 'hamburguesa-de-buey', 'Buey picado a cuchillo, queso curado y cebolla confitada.', $especies['Frutos rojos']],
+            [$restaurantes['Quatre Vents'], 'Lubina a la sal', 'lubina-a-la-sal', 'Lubina de la lonja a la sal, limón y aceite.', $especies['Cítricos']],
         ]);
 
         $reglas = [

@@ -13,6 +13,7 @@ use WineMatch\Auth;
 use WineMatch\Config;
 use WineMatch\Db;
 use WineMatch\Html;
+use WineMatch\Maridaje;
 
 $config = new Config();
 
@@ -140,5 +141,43 @@ switch ("{$metodo} {$uri}") {
         Html::redirigir('/login');
 
     default:
+        // /restaurante/{slug} : la carta.
+        if ($metodo === 'GET' && preg_match('#^/restaurante/([a-z0-9-]+)$#', $uri, $m) === 1) {
+            $usuario = Auth::requiereLogin($pdo);
+            $restaurante = Maridaje::restaurantePorSlug($pdo, $m[1]);
+            if ($restaurante === null) {
+                pagina404();
+            }
+            Html::cabecerasHtml();
+            echo Html::render('carta', ['restaurante' => $restaurante, 'platos' => Maridaje::carta($pdo, (int) $restaurante['id']), 'titulo' => $restaurante['nombre']] + $vars);
+            break;
+        }
+        // /restaurante/{slug}/{plato}[?tipo=N] : el maridador.
+        if ($metodo === 'GET' && preg_match('#^/restaurante/([a-z0-9-]+)/([a-z0-9-]+)$#', $uri, $m) === 1) {
+            $usuario = Auth::requiereLogin($pdo);
+            $plato = Maridaje::platoPorSlug($pdo, $m[1], $m[2]);
+            if ($plato === null) {
+                pagina404();
+            }
+            $tipos = Maridaje::tiposVino($pdo);
+            $tipoElegido = null;
+            if (isset($_GET['tipo']) && ctype_digit((string) $_GET['tipo'])) {
+                $id = (int) $_GET['tipo'];
+                foreach ($tipos as $t) {
+                    if ((int) $t['id'] === $id) {
+                        $tipoElegido = $id;
+                    }
+                }
+            }
+            $rec = Maridaje::recomendar($pdo, $plato, $tipoElegido);
+            Maridaje::registrarConsulta($pdo, (int) $usuario['id'], $rec['recomendacion_id']);
+            Html::cabecerasHtml();
+            echo Html::render('resultado', [
+                'plato' => $plato, 'rec' => $rec, 'tipos' => $tipos, 'tipoElegido' => $tipoElegido,
+                'opiniones' => Maridaje::opiniones($pdo, $rec['vino']['id']),
+                'titulo' => $plato['nombre'] . ' · ' . $rec['vino']['nombre'],
+            ] + $vars);
+            break;
+        }
         pagina404();
 }

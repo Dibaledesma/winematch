@@ -42,10 +42,12 @@ CREATE TABLE IF NOT EXISTS Comida (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     restaurante_id INT NOT NULL,
     nombre         VARCHAR(160) NOT NULL,
+    slug           VARCHAR(160) NOT NULL,
     descripcion    TEXT NOT NULL,
     especie_id     INT NOT NULL,
     CONSTRAINT fk_comida_restaurante FOREIGN KEY (restaurante_id) REFERENCES Restaurante(id),
     CONSTRAINT fk_comida_especie FOREIGN KEY (especie_id) REFERENCES Especie(id),
+    UNIQUE KEY uq_comida_slug (restaurante_id, slug),
     INDEX idx_comida_restaurante (restaurante_id)
 ) ENGINE = InnoDB;
 

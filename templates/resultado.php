@@ -1,0 +1,50 @@
+<?php
+/**
+ * @var array<string, mixed> $plato
+ * @var array<string, mixed> $rec
+ * @var list<array{id: int, nombre: string}> $tipos
+ * @var array<string, mixed> $opiniones
+ * @var int|null $tipoElegido
+ */
+use WineMatch\Html;
+
+$base = '/restaurante/' . Html::e($plato['restaurante_slug']) . '/' . Html::e($plato['slug']);
+?>
+<nav class="migas"><a href="/">Restaurantes</a> › <a href="/restaurante/<?= Html::e($plato['restaurante_slug']) ?>"><?= Html::e($plato['restaurante']) ?></a> › <?= Html::e($plato['nombre']) ?></nav>
+
+<section class="tarjeta">
+    <p class="etiqueta"><?= Html::e($plato['especie']) ?></p>
+    <h1><?= Html::e($plato['nombre']) ?></h1>
+    <p><?= Html::e($plato['descripcion']) ?></p>
+    <div class="selector-tipo" role="navigation" aria-label="Tipo de vino">
+        <span>Prefiero:</span>
+        <a class="<?= $tipoElegido === null ? 'activo' : '' ?>" href="<?= $base ?>">Cualquiera</a>
+        <?php foreach ($tipos as $t): ?>
+            <a class="<?= $tipoElegido === (int) $t['id'] ? 'activo' : '' ?>" href="<?= $base ?>?tipo=<?= (int) $t['id'] ?>"><?= Html::e($t['nombre']) ?></a>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<section class="tarjeta recomendacion">
+    <p class="motivo"><?= Html::e($rec['motivo']) ?></p>
+    <?php if ($rec['exacta']): ?><span class="insignia">Maridaje de la casa</span><?php endif; ?>
+    <h2><?= Html::e($rec['vino']['nombre']) ?></h2>
+    <p class="bodega"><?= Html::e($rec['vino']['bodega']) ?> · <?= Html::e($rec['vino']['tipo']) ?> · <?= Html::e($rec['vino']['botella']) ?></p>
+    <p class="variedad"><?= Html::e($rec['vino']['variedad']) ?></p>
+    <p class="mensaje"><?= Html::e($rec['mensaje']) ?></p>
+    <p class="nota"><?= Html::e($rec['vino']['descripcion']) ?></p>
+</section>
+
+<section class="tarjeta">
+    <h3>Lo que dicen de este vino</h3>
+    <p class="media"><?= Html::e($opiniones['media'] === null ? 'Sin valoraciones aún' : '★ ' . $opiniones['media'] . ' (' . $opiniones['total'] . ' valoraciones)') ?></p>
+    <?php if ($opiniones['comentarios'] === []): ?>
+        <p class="nota">Nadie ha comentado todavía. Sé el primero.</p>
+    <?php else: ?>
+        <ul class="comentarios">
+            <?php foreach ($opiniones['comentarios'] as $c): ?>
+                <li><strong><?= Html::e($c['nombre']) ?></strong> · <?= Html::e($c['fecha']) ?><br><?= Html::e($c['comentario']) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>

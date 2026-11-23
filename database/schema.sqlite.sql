@@ -44,8 +44,10 @@ CREATE TABLE IF NOT EXISTS Comida (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurante_id INTEGER NOT NULL REFERENCES Restaurante(id),
     nombre         TEXT NOT NULL,
+    slug           TEXT NOT NULL,
     descripcion    TEXT NOT NULL DEFAULT '',
-    especie_id     INTEGER NOT NULL REFERENCES Especie(id)
+    especie_id     INTEGER NOT NULL REFERENCES Especie(id),
+    UNIQUE (restaurante_id, slug)
 );
 CREATE INDEX IF NOT EXISTS idx_comida_restaurante ON Comida(restaurante_id);
 

@@ -99,3 +99,36 @@ h2 { font-size: 1.35rem; margin: 0 0 0.5rem; }
     .barra { flex-direction: column; align-items: flex-start; }
     h1 { font-size: 1.6rem; }
 }
+
+/* Maridador */
+.migas { font-size: 0.9rem; color: var(--tinta-suave); margin-bottom: 0.8rem; }
+.migas a { color: var(--tinta-suave); }
+.etiqueta { display: inline-block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vino); margin: 0 0 0.3rem; }
+
+.lista-platos { list-style: none; margin: 1.2rem 0; padding: 0; display: grid; gap: 0.8rem; }
+.plato { display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1rem; padding: 1rem 1.2rem; background: var(--papel); border: 1px solid var(--borde); border-radius: 10px; text-decoration: none; color: inherit; transition: transform 0.15s, box-shadow 0.15s; }
+.plato:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(59, 15, 26, 0.12); }
+.plato-nombre { font-size: 1.15rem; font-weight: bold; }
+.plato-descripcion { grid-column: 1; color: var(--tinta-suave); font-size: 0.95rem; }
+.plato .etiqueta { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; }
+
+.selector-tipo { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+.selector-tipo a { padding: 0.35rem 0.8rem; border: 1px solid var(--borde); border-radius: 999px; text-decoration: none; color: var(--vino); background: #fff; font-size: 0.92rem; }
+.selector-tipo a.activo { background: var(--vino); color: #fff; border-color: var(--vino); }
+
+.recomendacion { margin-top: 1.2rem; border-left: 5px solid var(--vino); }
+.recomendacion .motivo { color: var(--tinta-suave); margin-top: 0; font-style: italic; }
+.insignia { display: inline-block; background: var(--dorado); color: var(--tinta); font-size: 0.78rem; font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 999px; margin-bottom: 0.4rem; }
+.recomendacion h2 { font-size: 1.9rem; margin-bottom: 0.2rem; }
+.bodega { color: var(--tinta-suave); margin: 0; }
+.variedad { text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.08em; color: var(--vino); margin: 0.4rem 0 0.8rem; }
+.mensaje { font-size: 1.1rem; }
+
+.media { font-size: 1.1rem; color: var(--vino); }
+.comentarios { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7rem; }
+.comentarios li { border-top: 1px solid var(--borde); padding-top: 0.6rem; font-size: 0.95rem; }
+.comentarios strong { color: var(--tinta); }
+@media (max-width: 600px) {
+    .plato { grid-template-columns: 1fr; }
+    .plato .etiqueta { grid-column: 1; grid-row: auto; margin-top: 0.3rem; }
+}
